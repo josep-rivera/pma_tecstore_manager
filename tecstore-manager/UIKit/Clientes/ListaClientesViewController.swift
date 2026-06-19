@@ -10,7 +10,7 @@ final class ListaClientesViewController: UIViewController {
     // MARK: - IBOutlets
     @IBOutlet weak var tableView: UITableView!
 
-    // MARK: - UI (programmatic — not IBOutlets)
+    // MARK: - UI
     private let searchController = UISearchController(searchResultsController: nil)
     private let emptyLabel       = UILabel()
     private var filterButton:    UIBarButtonItem!

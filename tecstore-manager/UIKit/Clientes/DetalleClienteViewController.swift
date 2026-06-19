@@ -63,11 +63,13 @@ final class DetalleClienteViewController: UIViewController {
         nameLabel.textAlignment = .center
         nameLabel.numberOfLines = 0
 
-        statusBadge.font               = AppFont.subheadline()
+        statusBadge.font               = AppFont.caption1()
         statusBadge.textColor          = .white
         statusBadge.textAlignment      = .center
-        statusBadge.layer.cornerRadius = 10
+        statusBadge.layer.cornerRadius = 12
         statusBadge.clipsToBounds      = true
+        statusBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 72).isActive = true
+        statusBadge.heightAnchor.constraint(equalToConstant: 24).isActive = true
 
         for lbl in ([dniLabel, telefonoLabel, correoLabel, direccionLabel] as [UILabel]) {
             lbl.font          = AppFont.body()
@@ -238,7 +240,7 @@ final class DetalleClienteViewController: UIViewController {
         avatarLetter.text = initial.uppercased()
         nameLabel.text    = c.fullName
 
-        statusBadge.text            = "  \(c.statusValue)  "
+        statusBadge.text            = c.statusValue
         statusBadge.backgroundColor = c.isActive ? .appSuccess : .appTextSecondary
 
         iconText(dniLabel,       icon: "creditcard",    text: "DNI: \(c.dniValue)")

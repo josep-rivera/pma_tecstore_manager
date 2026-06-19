@@ -8,6 +8,8 @@ final class LoginViewController: UIViewController {
     @IBOutlet weak var loginButton: UIButton!
     @IBOutlet weak var registerButton: UIButton!
 
+    private var hasAttemptedSubmit = false
+
     // MARK: - UI (programmatic — decorative, not IBOutlets)
     private let correoError   = AppStyle.makeErrorLabel()
     private let passwordError = AppStyle.makeErrorLabel()
@@ -65,7 +67,8 @@ final class LoginViewController: UIViewController {
         setupButtons()
         setupProgrammaticViews()
         setupKeyboard()
-        _ = validate()
+        loginButton.isEnabled = false
+        loginButton.alpha = 0.6
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -104,7 +107,7 @@ final class LoginViewController: UIViewController {
         AppStyle.applyPrimary(to: loginButton, title: "Iniciar sesión")
         loginButton.addTarget(self, action: #selector(handleLogin), for: .touchUpInside)
 
-        AppStyle.applyText(to: registerButton, title: "¿No tienes cuenta? Regístrate")
+        AppStyle.applyText(to: registerButton, title: "Crear una cuenta nueva")
         registerButton.addTarget(self, action: #selector(handleGoToRegister), for: .touchUpInside)
     }
 
@@ -180,6 +183,7 @@ final class LoginViewController: UIViewController {
     // MARK: - Actions
 
     @objc private func handleLogin() {
+        hasAttemptedSubmit = true
         guard validate() else { return }
         do {
             try AuthService.shared.login(
@@ -223,10 +227,10 @@ final class LoginViewController: UIViewController {
 
         let correo = correoField.text?.trimmed ?? ""
         if correo.isEmpty {
-            setError(correoError, correoField, "El correo es requerido.")
+            if hasAttemptedSubmit { setError(correoError, correoField, "El correo es requerido.") }
             valid = false
         } else if !correo.isValidEmail {
-            setError(correoError, correoField, "Formato de correo inválido.")
+            if hasAttemptedSubmit { setError(correoError, correoField, "Formato de correo inválido.") }
             valid = false
         } else {
             clearError(correoError, correoField)
@@ -234,10 +238,10 @@ final class LoginViewController: UIViewController {
 
         let pwd = passwordField.text ?? ""
         if pwd.isEmpty {
-            setError(passwordError, passwordField, "La contraseña es requerida.")
+            if hasAttemptedSubmit { setError(passwordError, passwordField, "La contraseña es requerida.") }
             valid = false
         } else if pwd.count < 6 {
-            setError(passwordError, passwordField, "Mínimo 6 caracteres.")
+            if hasAttemptedSubmit { setError(passwordError, passwordField, "Mínimo 6 caracteres.") }
             valid = false
         } else {
             clearError(passwordError, passwordField)

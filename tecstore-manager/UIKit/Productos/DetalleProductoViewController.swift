@@ -5,23 +5,22 @@ final class DetalleProductoViewController: UIViewController {
     // MARK: - Data
     var producto: Producto!
 
-    // MARK: - IBOutlets (storyboard-placed, styled in code)
+    // MARK: - IBOutlets
     @IBOutlet weak var photoImageView: UIImageView!
-    @IBOutlet weak var nombreLabel: UILabel!
-    @IBOutlet weak var precioLabel: UILabel!
-    @IBOutlet weak var stockBadge: UILabel!
-    @IBOutlet weak var estadoBadge: UILabel!
+    @IBOutlet weak var nombreLabel:    UILabel!
+    @IBOutlet weak var precioLabel:    UILabel!
+    @IBOutlet weak var stockBadge:     UILabel!
+    @IBOutlet weak var estadoBadge:    UILabel!
 
-    // MARK: - UI (programmatic — not IBOutlets)
-    private let subtitleLabel  = UILabel()
-
-    // Info card
-    private let infoCard         = UIView()
-    private let precioTitleLabel = UILabel()
-    private let cardDiv1         = UIView()
-    private let estadoTitleLabel = UILabel()
-    private let cardDiv2         = UIView()
-    private let fechaLabel       = UILabel()
+    // MARK: - UI (programmatic)
+    private let codeLabel     = UILabel()
+    private let infoCard      = UIView()
+    private let stockRow      = InfoRow()
+    private let estadoRow     = InfoRow()
+    private let codigoRow     = InfoRow()
+    private let categoriaRow  = InfoRow()
+    private let fechaRow      = InfoRow()
+    private let div1 = UIView(), div2 = UIView(), div3 = UIView(), div4 = UIView()
 
     // MARK: - Lifecycle
 
@@ -34,6 +33,7 @@ final class DetalleProductoViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
         if let updated = ProductoService.shared.fetch(byID: producto.id) { producto = updated }
         populate()
     }
@@ -48,127 +48,103 @@ final class DetalleProductoViewController: UIViewController {
             title: "Editar", style: .plain, target: self, action: #selector(editProduct))
     }
 
-    /// Apply styling to IBOutlet views without adding or constraining them (storyboard owns layout).
     private func setupIBOutletStyling() {
-        photoImageView.contentMode     = .scaleAspectFill
+        photoImageView.contentMode     = .scaleAspectFit
         photoImageView.clipsToBounds   = true
         photoImageView.backgroundColor = .appSurface
 
-        nombreLabel.font          = AppFont.title2()
+        nombreLabel.font          = .systemFont(ofSize: 20, weight: .bold)
         nombreLabel.textColor     = .appTextPrimary
         nombreLabel.numberOfLines = 2
 
-        precioLabel.font      = AppFont.title3()
-        precioLabel.textColor = .brandPrimary
-
-        for badge in ([stockBadge, estadoBadge] as [UILabel]) {
-            badge.font               = AppFont.caption1()
-            badge.textColor          = .white
-            badge.textAlignment      = .center
-            badge.layer.cornerRadius = 10
-            badge.clipsToBounds      = true
-        }
+        // precioLabel, stockBadge, estadoBadge are now unused as IBOutlets for display —
+        // they're hidden; InfoRows in the programmatic card handle display.
+        precioLabel.isHidden  = true
+        stockBadge.isHidden   = true
+        estadoBadge.isHidden  = true
     }
 
-    /// Add programmatic supplementary views (subtitleLabel, infoCard, etc.) to the storyboard's
-    /// contentView. `nombreLabel.superview` is the storyboard-provided contentView.
     private func setupProgrammaticViews() {
         guard let contentView = nombreLabel.superview else { return }
-        let p  = AppLayout.padding
         let ph = AppLayout.paddingLarge
+        let p  = AppLayout.padding
 
-        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        subtitleLabel.font      = AppFont.footnote()
-        subtitleLabel.textColor = .appTextSecondary
-        contentView.addSubview(subtitleLabel)
+        // Code/category subtitle below nombreLabel
+        codeLabel.translatesAutoresizingMaskIntoConstraints = false
+        codeLabel.font      = .systemFont(ofSize: 13, weight: .regular)
+        codeLabel.textColor = .appTextSecondary
+        contentView.addSubview(codeLabel)
 
-        // Info card container
+        // Card
         infoCard.translatesAutoresizingMaskIntoConstraints = false
         infoCard.backgroundColor    = .appSurface
         infoCard.layer.cornerRadius = AppLayout.cornerRadius
         infoCard.layer.cornerCurve  = .continuous
-
-        // Row title labels
-        for (lbl, text) in [(precioTitleLabel, "Precio"), (estadoTitleLabel, "Estado")] {
-            lbl.translatesAutoresizingMaskIntoConstraints = false
-            lbl.text      = text
-            lbl.font      = AppFont.subheadline()
-            lbl.textColor = .appTextSecondary
-        }
-
-        fechaLabel.translatesAutoresizingMaskIntoConstraints = false
-        fechaLabel.font      = AppFont.footnote()
-        fechaLabel.textColor = .appTextTertiary
-
-        // Dividers
-        for div in [cardDiv1, cardDiv2] {
-            div.translatesAutoresizingMaskIntoConstraints = false
-            div.backgroundColor = .appSeparator
-        }
-
-        // IBOutlet badges go inside infoCard
-        stockBadge.translatesAutoresizingMaskIntoConstraints = false
-        estadoBadge.translatesAutoresizingMaskIntoConstraints = false
-
-        infoCard.addSubviews(
-            precioTitleLabel, precioLabel, stockBadge,
-            cardDiv1,
-            estadoTitleLabel, estadoBadge,
-            cardDiv2,
-            fechaLabel
-        )
         contentView.addSubview(infoCard)
 
-        NSLayoutConstraint.activate([
-            // Subtitle below nombreLabel (IBOutlet)
-            subtitleLabel.topAnchor.constraint(equalTo: nombreLabel.bottomAnchor, constant: 6),
-            subtitleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
-            subtitleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
+        let rows: [InfoRow] = [stockRow, estadoRow, codigoRow, categoriaRow, fechaRow]
+        let divs: [UIView]  = [div1, div2, div3, div4]
+        for row in rows { row.translatesAutoresizingMaskIntoConstraints = false; infoCard.addSubview(row) }
+        for div in divs { div.translatesAutoresizingMaskIntoConstraints = false; div.backgroundColor = .appSeparator; infoCard.addSubview(div) }
 
-            // Info card below subtitle
-            infoCard.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: ph),
+        NSLayoutConstraint.activate([
+            codeLabel.topAnchor.constraint(equalTo: nombreLabel.bottomAnchor, constant: 4),
+            codeLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
+            codeLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
+
+            infoCard.topAnchor.constraint(equalTo: codeLabel.bottomAnchor, constant: ph),
             infoCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
             infoCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
             infoCard.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -ph),
+        ])
 
-            // Row 1: Precio title | precioLabel (IBOutlet) | stockBadge (IBOutlet)
-            precioTitleLabel.topAnchor.constraint(equalTo: infoCard.topAnchor, constant: p),
-            precioTitleLabel.leadingAnchor.constraint(equalTo: infoCard.leadingAnchor, constant: p),
-            precioTitleLabel.bottomAnchor.constraint(equalTo: cardDiv1.topAnchor, constant: -p),
+        // Stack rows inside infoCard with dividers
+        NSLayoutConstraint.activate([
+            stockRow.topAnchor.constraint(equalTo: infoCard.topAnchor),
+            stockRow.leadingAnchor.constraint(equalTo: infoCard.leadingAnchor),
+            stockRow.trailingAnchor.constraint(equalTo: infoCard.trailingAnchor),
+            stockRow.heightAnchor.constraint(equalToConstant: 48),
 
-            precioLabel.centerYAnchor.constraint(equalTo: precioTitleLabel.centerYAnchor),
-            precioLabel.leadingAnchor.constraint(equalTo: precioTitleLabel.trailingAnchor, constant: p),
+            div1.topAnchor.constraint(equalTo: stockRow.bottomAnchor),
+            div1.leadingAnchor.constraint(equalTo: infoCard.leadingAnchor, constant: p),
+            div1.trailingAnchor.constraint(equalTo: infoCard.trailingAnchor),
+            div1.heightAnchor.constraint(equalToConstant: 0.5),
 
-            stockBadge.centerYAnchor.constraint(equalTo: precioTitleLabel.centerYAnchor),
-            stockBadge.trailingAnchor.constraint(equalTo: infoCard.trailingAnchor, constant: -p),
-            stockBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 90),
-            stockBadge.heightAnchor.constraint(equalToConstant: 26),
+            estadoRow.topAnchor.constraint(equalTo: div1.bottomAnchor),
+            estadoRow.leadingAnchor.constraint(equalTo: infoCard.leadingAnchor),
+            estadoRow.trailingAnchor.constraint(equalTo: infoCard.trailingAnchor),
+            estadoRow.heightAnchor.constraint(equalToConstant: 48),
 
-            // Divider 1
-            cardDiv1.leadingAnchor.constraint(equalTo: infoCard.leadingAnchor),
-            cardDiv1.trailingAnchor.constraint(equalTo: infoCard.trailingAnchor),
-            cardDiv1.heightAnchor.constraint(equalToConstant: 1),
+            div2.topAnchor.constraint(equalTo: estadoRow.bottomAnchor),
+            div2.leadingAnchor.constraint(equalTo: infoCard.leadingAnchor, constant: p),
+            div2.trailingAnchor.constraint(equalTo: infoCard.trailingAnchor),
+            div2.heightAnchor.constraint(equalToConstant: 0.5),
 
-            // Row 2: Estado title | estadoBadge (IBOutlet)
-            estadoTitleLabel.topAnchor.constraint(equalTo: cardDiv1.bottomAnchor, constant: p),
-            estadoTitleLabel.leadingAnchor.constraint(equalTo: infoCard.leadingAnchor, constant: p),
-            estadoTitleLabel.bottomAnchor.constraint(equalTo: cardDiv2.topAnchor, constant: -p),
+            codigoRow.topAnchor.constraint(equalTo: div2.bottomAnchor),
+            codigoRow.leadingAnchor.constraint(equalTo: infoCard.leadingAnchor),
+            codigoRow.trailingAnchor.constraint(equalTo: infoCard.trailingAnchor),
+            codigoRow.heightAnchor.constraint(equalToConstant: 48),
 
-            estadoBadge.centerYAnchor.constraint(equalTo: estadoTitleLabel.centerYAnchor),
-            estadoBadge.trailingAnchor.constraint(equalTo: infoCard.trailingAnchor, constant: -p),
-            estadoBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 70),
-            estadoBadge.heightAnchor.constraint(equalToConstant: 26),
+            div3.topAnchor.constraint(equalTo: codigoRow.bottomAnchor),
+            div3.leadingAnchor.constraint(equalTo: infoCard.leadingAnchor, constant: p),
+            div3.trailingAnchor.constraint(equalTo: infoCard.trailingAnchor),
+            div3.heightAnchor.constraint(equalToConstant: 0.5),
 
-            // Divider 2
-            cardDiv2.leadingAnchor.constraint(equalTo: infoCard.leadingAnchor),
-            cardDiv2.trailingAnchor.constraint(equalTo: infoCard.trailingAnchor),
-            cardDiv2.heightAnchor.constraint(equalToConstant: 1),
+            categoriaRow.topAnchor.constraint(equalTo: div3.bottomAnchor),
+            categoriaRow.leadingAnchor.constraint(equalTo: infoCard.leadingAnchor),
+            categoriaRow.trailingAnchor.constraint(equalTo: infoCard.trailingAnchor),
+            categoriaRow.heightAnchor.constraint(equalToConstant: 48),
 
-            // Fecha
-            fechaLabel.topAnchor.constraint(equalTo: cardDiv2.bottomAnchor, constant: p),
-            fechaLabel.leadingAnchor.constraint(equalTo: infoCard.leadingAnchor, constant: p),
-            fechaLabel.trailingAnchor.constraint(equalTo: infoCard.trailingAnchor, constant: -p),
-            fechaLabel.bottomAnchor.constraint(equalTo: infoCard.bottomAnchor, constant: -p),
+            div4.topAnchor.constraint(equalTo: categoriaRow.bottomAnchor),
+            div4.leadingAnchor.constraint(equalTo: infoCard.leadingAnchor, constant: p),
+            div4.trailingAnchor.constraint(equalTo: infoCard.trailingAnchor),
+            div4.heightAnchor.constraint(equalToConstant: 0.5),
+
+            fechaRow.topAnchor.constraint(equalTo: div4.bottomAnchor),
+            fechaRow.leadingAnchor.constraint(equalTo: infoCard.leadingAnchor),
+            fechaRow.trailingAnchor.constraint(equalTo: infoCard.trailingAnchor),
+            fechaRow.heightAnchor.constraint(equalToConstant: 48),
+            fechaRow.bottomAnchor.constraint(equalTo: infoCard.bottomAnchor),
         ])
     }
 
@@ -177,23 +153,32 @@ final class DetalleProductoViewController: UIViewController {
     private func populate() {
         guard let p = producto else { return }
 
-        let placeholder = UIImage(systemName: "shippingbox.fill")?.withRenderingMode(.alwaysTemplate)
+        let placeholder = UIImage(systemName: "shippingbox")?
+            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 40, weight: .light))
+            .withRenderingMode(.alwaysTemplate)
         photoImageView.setImage(from: p.productImagePath, placeholder: placeholder)
         photoImageView.tintColor = p.productImagePath == nil ? .appTextTertiary : nil
+        if p.productImagePath != nil { photoImageView.contentMode = .scaleAspectFill }
 
-        nombreLabel.text   = p.productName
-        subtitleLabel.text = "\(p.productCode)  ·  \(p.categoryValue)"
-        precioLabel.text   = p.priceDouble.asCurrency
+        nombreLabel.text = p.productName
+        codeLabel.text   = "\(p.productCode)  ·  \(p.categoryValue)"
 
         let stockInt = p.stockInt
-        stockBadge.text            = "  \(stockInt) \(stockInt == 1 ? "unidad" : "unidades")  "
-        stockBadge.backgroundColor = stockInt.stockUIColor
-
-        let active = p.isActive
-        estadoBadge.text            = "  \(p.statusValue)  "
-        estadoBadge.backgroundColor = active ? .appSuccess : .appTextSecondary
-
-        fechaLabel.text = "Registrado el \(p.registrationDate.displayDate)"
+        stockRow.configure(
+            icon:  "shippingbox",
+            title: "Stock",
+            value: "\(stockInt) \(stockInt == 1 ? "unidad" : "unidades")",
+            valueColor: stockInt.stockUIColor
+        )
+        estadoRow.configure(
+            icon:  p.isActive ? "checkmark.circle" : "xmark.circle",
+            title: "Estado",
+            value: p.statusValue,
+            valueColor: p.isActive ? .appSuccess : .appTextSecondary
+        )
+        codigoRow.configure(icon: "barcode", title: "Código", value: p.productCode)
+        categoriaRow.configure(icon: "tag", title: "Categoría", value: p.categoryValue)
+        fechaRow.configure(icon: "calendar", title: "Registrado", value: p.registrationDate.displayDate)
     }
 
     // MARK: - Actions
@@ -202,8 +187,6 @@ final class DetalleProductoViewController: UIViewController {
         performSegue(withIdentifier: "showEditarProducto", sender: producto)
     }
 
-    // MARK: - Navigation
-
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == "showEditarProducto",
            let dest = segue.destination as? FormularioProductoViewController,
@@ -211,5 +194,61 @@ final class DetalleProductoViewController: UIViewController {
             dest.producto = p
             dest.onSave   = { }
         }
+    }
+}
+
+// MARK: - InfoRow
+
+private final class InfoRow: UIView {
+
+    private let iconView  = UIImageView()
+    private let titleLbl  = UILabel()
+    private let valueLbl  = UILabel()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        iconView.translatesAutoresizingMaskIntoConstraints  = false
+        titleLbl.translatesAutoresizingMaskIntoConstraints  = false
+        valueLbl.translatesAutoresizingMaskIntoConstraints  = false
+
+        iconView.tintColor      = .appTextTertiary
+        iconView.contentMode    = .scaleAspectFit
+
+        titleLbl.font           = .systemFont(ofSize: 15, weight: .regular)
+        titleLbl.textColor      = .appTextSecondary
+
+        valueLbl.font           = .systemFont(ofSize: 15, weight: .medium)
+        valueLbl.textColor      = .appTextPrimary
+        valueLbl.textAlignment  = .right
+        valueLbl.numberOfLines  = 1
+        valueLbl.adjustsFontSizeToFitWidth = true
+        valueLbl.minimumScaleFactor = 0.8
+
+        addSubview(iconView); addSubview(titleLbl); addSubview(valueLbl)
+
+        let p: CGFloat = 16
+        NSLayoutConstraint.activate([
+            iconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: p),
+            iconView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            iconView.widthAnchor.constraint(equalToConstant: 18),
+            iconView.heightAnchor.constraint(equalToConstant: 18),
+
+            titleLbl.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 10),
+            titleLbl.centerYAnchor.constraint(equalTo: centerYAnchor),
+
+            valueLbl.leadingAnchor.constraint(equalTo: titleLbl.trailingAnchor, constant: 8),
+            valueLbl.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -p),
+            valueLbl.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func configure(icon: String, title: String, value: String, valueColor: UIColor = .appTextPrimary) {
+        iconView.image  = UIImage(systemName: icon)?
+            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 14, weight: .regular))
+        titleLbl.text   = title
+        valueLbl.text   = value
+        valueLbl.textColor = valueColor
     }
 }

@@ -26,7 +26,7 @@ final class FormularioClienteViewController: UIViewController {
     @IBOutlet weak var estadoSwitch: UISwitch!
     @IBOutlet weak var mapView: MKMapView!
 
-    // MARK: - UI (programmatic — not IBOutlets)
+    // MARK: - UI
     private let dniError       = AppStyle.makeErrorLabel()
     private let nombresError   = AppStyle.makeErrorLabel()
     private let apellidosError = AppStyle.makeErrorLabel()
@@ -49,6 +49,17 @@ final class FormularioClienteViewController: UIViewController {
         setupProgrammaticViews()
         setupKeyboard()
         if isEditMode { populateFields() } else { navigationItem.rightBarButtonItem?.isEnabled = false }
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        if let scrollView = view.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView {
+            let tabBarHeight = tabBarController?.tabBar.frame.height ?? 0
+            if scrollView.contentInset.bottom == 0 {
+                scrollView.contentInset.bottom = tabBarHeight + AppLayout.padding
+                scrollView.verticalScrollIndicatorInsets.bottom = tabBarHeight
+            }
+        }
     }
 
     // MARK: - Setup

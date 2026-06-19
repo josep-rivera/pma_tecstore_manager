@@ -71,7 +71,7 @@ final class FormularioProductoViewController: UIViewController {
     }
 
     private func setupPhoto() {
-        photoImageView.contentMode        = .scaleAspectFill
+        photoImageView.contentMode        = .center
         photoImageView.clipsToBounds      = true
         photoImageView.layer.cornerRadius = AppLayout.cornerRadius
         photoImageView.layer.cornerCurve  = .continuous
@@ -79,8 +79,8 @@ final class FormularioProductoViewController: UIViewController {
         photoImageView.layer.borderColor  = UIColor.brandLight.cgColor
         photoImageView.backgroundColor    = .appSurface
 
-        let cameraIcon = UIImage(systemName: "camera.circle.fill")?
-            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 40, weight: .light))
+        let cameraIcon = UIImage(systemName: "camera.fill")?
+            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 28, weight: .light))
             .withRenderingMode(.alwaysTemplate)
         photoImageView.image     = cameraIcon
         photoImageView.tintColor = .appTextTertiary
@@ -201,6 +201,7 @@ final class FormularioProductoViewController: UIViewController {
         updateEstadoLabel()
 
         if let path = p.productImagePath {
+            photoImageView.contentMode = .scaleAspectFill
             photoImageView.setImage(from: path)
             photoImageView.tintColor = nil
         }
@@ -271,8 +272,9 @@ final class FormularioProductoViewController: UIViewController {
         let resized   = image.resized(maxDimension: 800)
         let fileName  = "\(UUID().compact).jpg"
         selectedPhotoPath        = resized.saveToDocuments(named: fileName)
-        photoImageView.image     = resized
-        photoImageView.tintColor = nil
+        photoImageView.contentMode = .scaleAspectFill
+        photoImageView.image       = resized
+        photoImageView.tintColor   = nil
     }
 
     @objc private func categoryPickerDone() {

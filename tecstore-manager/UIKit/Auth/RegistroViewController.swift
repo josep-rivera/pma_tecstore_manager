@@ -10,6 +10,8 @@ final class RegistroViewController: UIViewController {
     @IBOutlet weak var registerButton: UIButton!
     @IBOutlet weak var loginButton: UIButton!
 
+    private var hasAttemptedSubmit = false
+
     // MARK: - UI (programmatic — not IBOutlets)
     private let nombreError   = AppStyle.makeErrorLabel()
     private let correoError   = AppStyle.makeErrorLabel()
@@ -44,7 +46,8 @@ final class RegistroViewController: UIViewController {
         setupButtons()
         setupProgrammaticViews()
         setupKeyboard()
-        _ = validate()
+        registerButton.isEnabled = false
+        registerButton.alpha = 0.6
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -81,7 +84,7 @@ final class RegistroViewController: UIViewController {
         AppStyle.applyPrimary(to: registerButton, title: "Crear cuenta")
         registerButton.addTarget(self, action: #selector(handleRegister), for: .touchUpInside)
 
-        AppStyle.applyText(to: loginButton, title: "¿Ya tienes cuenta? Inicia sesión")
+        AppStyle.applyText(to: loginButton, title: "Ya tengo una cuenta")
         loginButton.addTarget(self, action: #selector(handleGoToLogin), for: .touchUpInside)
     }
 
@@ -138,6 +141,7 @@ final class RegistroViewController: UIViewController {
     // MARK: - Actions
 
     @objc private func handleRegister() {
+        hasAttemptedSubmit = true
         guard validate() else { return }
         do {
             try AuthService.shared.register(
@@ -183,40 +187,40 @@ final class RegistroViewController: UIViewController {
         // Nombre
         let nombre = nombreField.text?.trimmed ?? ""
         if nombre.isEmpty {
-            setError(nombreError, nombreField, "El nombre es requerido.")
+            if hasAttemptedSubmit { setError(nombreError, nombreField, "El nombre es requerido.") }
             valid = false
         } else if nombre.count < 3 {
-            setError(nombreError, nombreField, "Ingresa tu nombre completo.")
+            if hasAttemptedSubmit { setError(nombreError, nombreField, "Ingresa tu nombre completo.") }
             valid = false
         } else { clearError(nombreError, nombreField) }
 
         // Correo
         let correo = correoField.text?.trimmed ?? ""
         if correo.isEmpty {
-            setError(correoError, correoField, "El correo es requerido.")
+            if hasAttemptedSubmit { setError(correoError, correoField, "El correo es requerido.") }
             valid = false
         } else if !correo.isValidEmail {
-            setError(correoError, correoField, "Formato de correo inválido.")
+            if hasAttemptedSubmit { setError(correoError, correoField, "Formato de correo inválido.") }
             valid = false
         } else { clearError(correoError, correoField) }
 
         // Contraseña
         let pwd = passwordField.text ?? ""
         if pwd.isEmpty {
-            setError(passwordError, passwordField, "La contraseña es requerida.")
+            if hasAttemptedSubmit { setError(passwordError, passwordField, "La contraseña es requerida.") }
             valid = false
         } else if pwd.count < 6 {
-            setError(passwordError, passwordField, "Mínimo 6 caracteres.")
+            if hasAttemptedSubmit { setError(passwordError, passwordField, "Mínimo 6 caracteres.") }
             valid = false
         } else { clearError(passwordError, passwordField) }
 
         // Confirmar
         let confirm = confirmField.text ?? ""
         if confirm.isEmpty {
-            setError(confirmError, confirmField, "Confirma tu contraseña.")
+            if hasAttemptedSubmit { setError(confirmError, confirmField, "Confirma tu contraseña.") }
             valid = false
         } else if confirm != pwd {
-            setError(confirmError, confirmField, "Las contraseñas no coinciden.")
+            if hasAttemptedSubmit { setError(confirmError, confirmField, "Las contraseñas no coinciden.") }
             valid = false
         } else { clearError(confirmError, confirmField) }
 
