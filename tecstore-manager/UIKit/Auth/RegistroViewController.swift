@@ -2,54 +2,28 @@ import UIKit
 
 final class RegistroViewController: UIViewController {
 
-    // MARK: - Navigation Callbacks
-    var onRegisterSuccess: (() -> Void)?
-    var onGoToLogin: (() -> Void)?
+    // MARK: - IBOutlets
+    @IBOutlet weak var nombreField: UITextField!
+    @IBOutlet weak var correoField: UITextField!
+    @IBOutlet weak var passwordField: UITextField!
+    @IBOutlet weak var confirmField: UITextField!
+    @IBOutlet weak var registerButton: UIButton!
+    @IBOutlet weak var loginButton: UIButton!
 
-    // MARK: - UI Elements
-    private let scrollView  = UIScrollView()
-    private let contentView = UIView()
-
-    private let titleLabel: UILabel = {
-        let l = UILabel()
-        l.translatesAutoresizingMaskIntoConstraints = false
-        l.text          = "Crear cuenta"
-        l.font          = AppFont.title1()
-        l.textColor     = .appTextPrimary
-        l.textAlignment = .center
-        return l
-    }()
-    private let subtitleLabel: UILabel = {
-        let l = UILabel()
-        l.translatesAutoresizingMaskIntoConstraints = false
-        l.text          = "Completa los datos para registrarte"
-        l.font          = AppFont.body()
-        l.textColor     = .appTextSecondary
-        l.textAlignment = .center
-        return l
-    }()
-
-    private let nombreField   = UITextField()
+    // MARK: - UI (programmatic — not IBOutlets)
     private let nombreError   = AppStyle.makeErrorLabel()
-    private let correoField   = UITextField()
     private let correoError   = AppStyle.makeErrorLabel()
-    private let passwordField = UITextField()
     private let passwordError = AppStyle.makeErrorLabel()
-    private let confirmField  = UITextField()
     private let confirmError  = AppStyle.makeErrorLabel()
-
-    private let registerButton = UIButton(type: .system)
-    private let loginButton    = UIButton(type: .system)
 
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
         setupView()
-        setupScrollView()
         setupFields()
         setupButtons()
-        setupConstraints()
+        setupProgrammaticViews()
         setupKeyboard()
         _ = validate()
     }
@@ -68,19 +42,6 @@ final class RegistroViewController: UIViewController {
         view.addGestureRecognizer(tap)
     }
 
-    private func setupScrollView() {
-        scrollView.translatesAutoresizingMaskIntoConstraints  = false
-        contentView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(scrollView)
-        scrollView.addSubview(contentView)
-        contentView.addSubviews(titleLabel, subtitleLabel,
-                                nombreField, nombreError,
-                                correoField, correoError,
-                                passwordField, passwordError,
-                                confirmField, confirmError,
-                                registerButton, loginButton)
-    }
-
     private func setupFields() {
         let fields: [(UITextField, String, String, UIKeyboardType, UIReturnKeyType, Bool)] = [
             (nombreField,   "Nombre completo",       "person",   .default,      .next, false),
@@ -91,7 +52,6 @@ final class RegistroViewController: UIViewController {
         for (field, ph, icon, keyboard, returnKey, secure) in fields {
             AppStyle.style(textField: field, placeholder: ph, icon: icon,
                            isSecure: secure, keyboardType: keyboard, returnKey: returnKey)
-            field.translatesAutoresizingMaskIntoConstraints = false
             field.delegate = self
             field.addTarget(self, action: #selector(fieldsChanged), for: .editingChanged)
         }
@@ -100,70 +60,38 @@ final class RegistroViewController: UIViewController {
 
     private func setupButtons() {
         AppStyle.applyPrimary(to: registerButton, title: "Crear cuenta")
-        registerButton.translatesAutoresizingMaskIntoConstraints = false
         registerButton.addTarget(self, action: #selector(handleRegister), for: .touchUpInside)
 
         AppStyle.applyText(to: loginButton, title: "¿Ya tienes cuenta? Inicia sesión")
-        loginButton.translatesAutoresizingMaskIntoConstraints = false
         loginButton.addTarget(self, action: #selector(handleGoToLogin), for: .touchUpInside)
     }
 
-    private func setupConstraints() {
-        let ph = AppLayout.paddingLarge
-        let p  = AppLayout.padding
-        let fh = AppLayout.textFieldHeight
+    /// Add error labels to the storyboard's contentView.
+    /// `nombreField.superview` is the storyboard-provided contentView inside the scrollView.
+    private func setupProgrammaticViews() {
+        guard let contentView = nombreField.superview else { return }
 
-        let pairs: [(UITextField, UILabel)] = [
-            (nombreField, nombreError),
-            (correoField, correoError),
-            (passwordField, passwordError),
-            (confirmField, confirmError)
-        ]
-
-        NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
-
-            titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 48),
-            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
-            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 6),
-            subtitleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
-            subtitleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
-        ])
-
-        // Dynamically chain fields
-        var previousAnchor = subtitleLabel.bottomAnchor
-        var previousConstant: CGFloat = 36
-        for (index, (field, error)) in pairs.enumerated() {
-            NSLayoutConstraint.activate([
-                field.topAnchor.constraint(equalTo: previousAnchor, constant: previousConstant),
-                field.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
-                field.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
-                field.heightAnchor.constraint(equalToConstant: fh),
-                error.topAnchor.constraint(equalTo: field.bottomAnchor, constant: 4),
-                error.leadingAnchor.constraint(equalTo: field.leadingAnchor),
-                error.trailingAnchor.constraint(equalTo: field.trailingAnchor),
-            ])
-            previousAnchor   = error.bottomAnchor
-            previousConstant = index == pairs.count - 1 ? 0 : p
+        for label in [nombreError, correoError, passwordError, confirmError] {
+            label.translatesAutoresizingMaskIntoConstraints = false
+            contentView.addSubview(label)
         }
 
         NSLayoutConstraint.activate([
-            registerButton.topAnchor.constraint(equalTo: previousAnchor, constant: 36),
-            registerButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
-            registerButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
-            registerButton.heightAnchor.constraint(equalToConstant: AppLayout.buttonHeight),
-            loginButton.topAnchor.constraint(equalTo: registerButton.bottomAnchor, constant: p),
-            loginButton.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            loginButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -48)
+            nombreError.topAnchor.constraint(equalTo: nombreField.bottomAnchor, constant: 4),
+            nombreError.leadingAnchor.constraint(equalTo: nombreField.leadingAnchor),
+            nombreError.trailingAnchor.constraint(equalTo: nombreField.trailingAnchor),
+
+            correoError.topAnchor.constraint(equalTo: correoField.bottomAnchor, constant: 4),
+            correoError.leadingAnchor.constraint(equalTo: correoField.leadingAnchor),
+            correoError.trailingAnchor.constraint(equalTo: correoField.trailingAnchor),
+
+            passwordError.topAnchor.constraint(equalTo: passwordField.bottomAnchor, constant: 4),
+            passwordError.leadingAnchor.constraint(equalTo: passwordField.leadingAnchor),
+            passwordError.trailingAnchor.constraint(equalTo: passwordField.trailingAnchor),
+
+            confirmError.topAnchor.constraint(equalTo: confirmField.bottomAnchor, constant: 4),
+            confirmError.leadingAnchor.constraint(equalTo: confirmField.leadingAnchor),
+            confirmError.trailingAnchor.constraint(equalTo: confirmField.trailingAnchor),
         ])
     }
 
@@ -186,7 +114,7 @@ final class RegistroViewController: UIViewController {
                 email:    correoField.text ?? "",
                 password: passwordField.text ?? ""
             )
-            onRegisterSuccess?()
+            (UIApplication.shared.connectedScenes.first?.delegate as? SceneDelegate)?.switchToMenu()
         } catch let error as ServiceError {
             showAlert(title: "Error al registrarse",
                       message: error.errorDescription ?? "")
@@ -195,19 +123,24 @@ final class RegistroViewController: UIViewController {
         }
     }
 
-    @objc private func handleGoToLogin() { onGoToLogin?() }
+    @objc private func handleGoToLogin() {
+        navigationController?.popViewController(animated: true)
+    }
     @objc private func fieldsChanged()   { _ = validate() }
     @objc private func tapToDismiss() { view.endEditing(true) }
 
     @objc private func keyboardWillShow(_ n: NSNotification) {
-        if let frame = n.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+        if let frame = n.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
+           let scrollView = view.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView {
             scrollView.contentInset.bottom                  = frame.height + 20
             scrollView.verticalScrollIndicatorInsets.bottom = frame.height
         }
     }
     @objc private func keyboardWillHide(_ n: NSNotification) {
-        scrollView.contentInset.bottom                  = 0
-        scrollView.verticalScrollIndicatorInsets.bottom = 0
+        if let scrollView = view.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView {
+            scrollView.contentInset.bottom                  = 0
+            scrollView.verticalScrollIndicatorInsets.bottom = 0
+        }
     }
 
     // MARK: - Validation

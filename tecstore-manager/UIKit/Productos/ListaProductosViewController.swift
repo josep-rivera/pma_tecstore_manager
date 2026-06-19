@@ -7,10 +7,12 @@ final class ListaProductosViewController: UIViewController {
     private var filteredProductos: [Producto] = []
     private var activeFilter: Int = 0   // 0=Todos 1=Con stock 2=Sin stock
 
-    // MARK: - UI Elements
+    // MARK: - IBOutlets
+    @IBOutlet weak var segmentedControl: UISegmentedControl!
+    @IBOutlet weak var tableView: UITableView!
+
+    // MARK: - UI Elements (programmatic — not IBOutlets)
     private let searchController  = UISearchController(searchResultsController: nil)
-    private let segmentedControl  = UISegmentedControl(items: ["Todos", "Con stock", "Sin stock"])
-    private let tableView         = UITableView(frame: .zero, style: .plain)
     private let emptyLabel        = UILabel()
 
     // MARK: - Lifecycle
@@ -44,10 +46,8 @@ final class ListaProductosViewController: UIViewController {
     }
 
     private func setupSegmentedControl() {
-        segmentedControl.translatesAutoresizingMaskIntoConstraints = false
         segmentedControl.selectedSegmentIndex = 0
         segmentedControl.addTarget(self, action: #selector(segmentChanged), for: .valueChanged)
-        view.addSubview(segmentedControl)
     }
 
     private func setupSearch() {
@@ -60,14 +60,12 @@ final class ListaProductosViewController: UIViewController {
     }
 
     private func setupTableView() {
-        tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.register(ProductoCell.self, forCellReuseIdentifier: ProductoCell.reuseID)
         tableView.dataSource         = self
         tableView.delegate           = self
         tableView.rowHeight          = UITableView.automaticDimension
         tableView.estimatedRowHeight = AppLayout.cellHeight
         tableView.separatorInset     = UIEdgeInsets(top: 0, left: AppLayout.padding, bottom: 0, right: 0)
-        view.addSubview(tableView)
     }
 
     private func setupEmptyLabel() {
@@ -83,15 +81,6 @@ final class ListaProductosViewController: UIViewController {
     private func setupConstraints() {
         view.backgroundColor = .appBackground
         NSLayoutConstraint.activate([
-            segmentedControl.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            segmentedControl.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: AppLayout.padding),
-            segmentedControl.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -AppLayout.padding),
-
-            tableView.topAnchor.constraint(equalTo: segmentedControl.bottomAnchor, constant: 8),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-
             emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
@@ -120,14 +109,26 @@ final class ListaProductosViewController: UIViewController {
     // MARK: - Actions
 
     @objc private func addProduct() {
-        let formVC = FormularioProductoViewController()
-        formVC.onSave = { [weak self] in self?.loadData() }
-        navigationController?.pushViewController(formVC, animated: true)
+        performSegue(withIdentifier: "showFormularioProducto", sender: nil)
     }
 
     @objc private func segmentChanged() {
         activeFilter = segmentedControl.selectedSegmentIndex
         applyFilters()
+    }
+
+    // MARK: - Navigation
+
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "showFormularioProducto",
+           let dest = segue.destination as? FormularioProductoViewController {
+            dest.producto = sender as? Producto
+            dest.onSave = { [weak self] in self?.loadData() }
+        } else if segue.identifier == "showDetalleProducto",
+                  let dest = segue.destination as? DetalleProductoViewController,
+                  let producto = sender as? Producto {
+            dest.producto = producto
+        }
     }
 }
 
@@ -158,9 +159,7 @@ extension ListaProductosViewController: UITableViewDataSource {
 extension ListaProductosViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        let detailVC = DetalleProductoViewController()
-        detailVC.producto = filteredProductos[indexPath.row]
-        navigationController?.pushViewController(detailVC, animated: true)
+        performSegue(withIdentifier: "showDetalleProducto", sender: filteredProductos[indexPath.row])
     }
 
     func tableView(

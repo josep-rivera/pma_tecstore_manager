@@ -41,70 +41,33 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     // MARK: - Root View Controller
 
     private func makeRootViewController() -> UIViewController {
-        AuthService.shared.hasActiveSession
-            ? makeMenuViewController()
-            : makeAuthNavigationController()
-    }
-
-    // Auth flow: UINavigationController → UIHostingController<BienvenidaView>
-    func makeAuthNavigationController() -> UINavigationController {
-        let bienvenidaView = BienvenidaView(
-            onLogin:    { [weak self] in self?.pushLogin() },
-            onRegister: { [weak self] in self?.pushRegister() }
-        )
-        let hostingVC = UIHostingController(rootView: bienvenidaView)
-        hostingVC.view.backgroundColor = .appBackground
-
-        let nav = UINavigationController(rootViewController: hostingVC)
-        nav.setNavigationBarHidden(true, animated: false)
-        return nav
-    }
-
-    // Main app flow: MenuViewController (UITabBarController)
-    func makeMenuViewController() -> UIViewController {
-        MenuViewController()
-    }
-
-    // MARK: - Auth Navigation (called from BienvenidaView closures)
-
-    func pushLogin() {
-        guard let nav = window?.rootViewController as? UINavigationController else { return }
-        let loginVC = LoginViewController()
-        loginVC.onLoginSuccess  = { [weak self] in self?.transitionToMenu() }
-        loginVC.onGoToRegister  = { [weak self] in self?.pushRegister() }
-        nav.pushViewController(loginVC, animated: true)
-    }
-
-    func pushRegister() {
-        guard let nav = window?.rootViewController as? UINavigationController else { return }
-
-        // Avoid pushing duplicates
-        if nav.viewControllers.contains(where: { $0 is RegistroViewController }) {
-            nav.popToRootViewController(animated: true)
-            return
+        let sb = UIStoryboard(name: "Main", bundle: nil)
+        if AuthService.shared.hasActiveSession {
+            return sb.instantiateViewController(withIdentifier: "MenuViewController")
+        } else {
+            return sb.instantiateInitialViewController()!
         }
-
-        let registerVC = RegistroViewController()
-        registerVC.onRegisterSuccess = { [weak self] in self?.transitionToMenu() }
-        registerVC.onGoToLogin       = { [weak nav]  in nav?.popToRootViewController(animated: true) }
-        nav.pushViewController(registerVC, animated: true)
     }
 
     // MARK: - Transitions
 
     /// Replace root with MenuViewController (after login or register)
-    func transitionToMenu() {
+    func switchToMenu() {
         guard let window else { return }
+        let sb = UIStoryboard(name: "Main", bundle: nil)
+        let menuVC = sb.instantiateViewController(withIdentifier: "MenuViewController")
         UIView.transition(with: window, duration: 0.35, options: .transitionCrossDissolve) {
-            window.rootViewController = self.makeMenuViewController()
+            window.rootViewController = menuVC
         }
     }
 
     /// Replace root with auth flow (after logout)
-    func transitionToAuth() {
+    func switchToAuth() {
         guard let window else { return }
+        let sb = UIStoryboard(name: "Main", bundle: nil)
+        let authNav = sb.instantiateInitialViewController()!
         UIView.transition(with: window, duration: 0.35, options: .transitionCrossDissolve) {
-            window.rootViewController = self.makeAuthNavigationController()
+            window.rootViewController = authNav
         }
     }
 
@@ -124,7 +87,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     // MARK: - Notification Handlers
 
     @objc private func handleLogout() {
-        transitionToAuth()
+        switchToAuth()
     }
 
     // MARK: - Static Accessor

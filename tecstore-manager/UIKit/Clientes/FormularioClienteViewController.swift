@@ -16,27 +16,26 @@ final class FormularioClienteViewController: UIViewController {
     private var activeSearch: MKLocalSearch?
     private var geocodeTimer: Timer?
 
-    // MARK: - UI
-    private let scrollView  = UIScrollView()
-    private let contentView = UIView()
+    // MARK: - IBOutlets
+    @IBOutlet weak var dniField: UITextField!
+    @IBOutlet weak var nombresField: UITextField!
+    @IBOutlet weak var apellidosField: UITextField!
+    @IBOutlet weak var telefonoField: UITextField!
+    @IBOutlet weak var correoField: UITextField!
+    @IBOutlet weak var direccionField: UITextField!
+    @IBOutlet weak var estadoSwitch: UISwitch!
+    @IBOutlet weak var mapView: MKMapView!
 
-    private let dniField       = UITextField()
+    // MARK: - UI (programmatic — not IBOutlets)
     private let dniError       = AppStyle.makeErrorLabel()
-    private let nombresField   = UITextField()
     private let nombresError   = AppStyle.makeErrorLabel()
-    private let apellidosField = UITextField()
     private let apellidosError = AppStyle.makeErrorLabel()
-    private let telefonoField  = UITextField()
-    private let correoField    = UITextField()
     private let correoError    = AppStyle.makeErrorLabel()
-    private let direccionField = UITextField()
 
     private let estadoLabel      = AppStyle.makeFieldLabel("Estado")
-    private let estadoSwitch     = UISwitch()
     private let estadoValueLabel = UILabel()
 
     private let locationHeaderLabel  = UILabel()
-    private let mapView              = MKMapView()
     private let mapHintLabel         = UILabel()
 
     // MARK: - Lifecycle
@@ -44,11 +43,10 @@ final class FormularioClienteViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupView()
-        setupScrollView()
         setupFields()
         setupEstado()
         setupLocationSection()
-        setupConstraints()
+        setupProgrammaticViews()
         setupKeyboard()
         if isEditMode { populateFields() } else { navigationItem.rightBarButtonItem?.isEnabled = false }
     }
@@ -66,13 +64,6 @@ final class FormularioClienteViewController: UIViewController {
         view.addGestureRecognizer(tap)
     }
 
-    private func setupScrollView() {
-        scrollView.translatesAutoresizingMaskIntoConstraints  = false
-        contentView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(scrollView)
-        scrollView.addSubview(contentView)
-    }
-
     private func setupFields() {
         let configs: [(UITextField, String, String, UIKeyboardType, UIReturnKeyType, Bool)] = [
             (dniField,       "DNI (8 dígitos)",       "creditcard",  .numberPad,    .next, false),
@@ -85,7 +76,6 @@ final class FormularioClienteViewController: UIViewController {
         for (field, ph, icon, kb, ret, sec) in configs {
             AppStyle.style(textField: field, placeholder: ph, icon: icon,
                            isSecure: sec, keyboardType: kb, returnKey: ret)
-            field.translatesAutoresizingMaskIntoConstraints = false
             field.delegate = self
             field.addTarget(self, action: #selector(fieldsChanged), for: .editingChanged)
         }
@@ -94,19 +84,9 @@ final class FormularioClienteViewController: UIViewController {
         direccionField.autocapitalizationType = .words
         dniField.addTarget(self, action: #selector(dniChanged), for: .editingChanged)
         direccionField.addTarget(self, action: #selector(direccionChanged), for: .editingChanged)
-
-        contentView.addSubviews(dniField, dniError,
-                                nombresField, nombresError,
-                                apellidosField, apellidosError,
-                                telefonoField,
-                                correoField, correoError,
-                                direccionField,
-                                estadoLabel, estadoSwitch, estadoValueLabel)
     }
 
     private func setupEstado() {
-        estadoLabel.translatesAutoresizingMaskIntoConstraints  = false
-        estadoSwitch.translatesAutoresizingMaskIntoConstraints = false
         estadoSwitch.isOn       = true
         estadoSwitch.onTintColor = .appSuccess
         estadoSwitch.addTarget(self, action: #selector(estadoChanged), for: .valueChanged)
@@ -118,77 +98,60 @@ final class FormularioClienteViewController: UIViewController {
     }
 
     private func setupLocationSection() {
-        locationHeaderLabel.translatesAutoresizingMaskIntoConstraints = false
-        locationHeaderLabel.text      = "Ubicación del cliente"
-        locationHeaderLabel.font      = AppFont.headline()
-        locationHeaderLabel.textColor = .appTextPrimary
-
-        mapView.translatesAutoresizingMaskIntoConstraints = false
         mapView.layer.cornerRadius = AppLayout.cornerRadius
         mapView.clipsToBounds      = true
         mapView.delegate           = self
         let tap = UITapGestureRecognizer(target: self, action: #selector(mapTapped(_:)))
         mapView.addGestureRecognizer(tap)
+    }
+
+    /// Add programmatic error labels, estado row, and location header+hint to the storyboard contentView.
+    /// `dniField.superview` is the storyboard-provided contentView inside the scrollView.
+    private func setupProgrammaticViews() {
+        guard let contentView = dniField.superview else { return }
+        let ph = AppLayout.paddingLarge
+        let p  = AppLayout.padding
+
+        for label in [dniError, nombresError, apellidosError, correoError] {
+            label.translatesAutoresizingMaskIntoConstraints = false
+            contentView.addSubview(label)
+        }
+
+        estadoLabel.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(estadoLabel)
+        contentView.addSubview(estadoValueLabel)
+
+        locationHeaderLabel.translatesAutoresizingMaskIntoConstraints = false
+        locationHeaderLabel.text      = "Ubicación del cliente"
+        locationHeaderLabel.font      = AppFont.headline()
+        locationHeaderLabel.textColor = .appTextPrimary
+        contentView.addSubview(locationHeaderLabel)
 
         mapHintLabel.translatesAutoresizingMaskIntoConstraints = false
         mapHintLabel.text          = "Toca el mapa para colocar el pin"
         mapHintLabel.font          = AppFont.caption1()
         mapHintLabel.textColor     = .appTextSecondary
         mapHintLabel.textAlignment = .center
-
-        contentView.addSubviews(locationHeaderLabel, mapView, mapHintLabel)
-    }
-
-    private func setupConstraints() {
-        let ph = AppLayout.paddingLarge
-        let p  = AppLayout.padding
-        let fh = AppLayout.textFieldHeight
+        contentView.addSubview(mapHintLabel)
 
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
-        ])
+            dniError.topAnchor.constraint(equalTo: dniField.bottomAnchor, constant: 4),
+            dniError.leadingAnchor.constraint(equalTo: dniField.leadingAnchor),
+            dniError.trailingAnchor.constraint(equalTo: dniField.trailingAnchor),
 
-        let rows: [(UITextField, UILabel?)] = [
-            (dniField,       dniError),
-            (nombresField,   nombresError),
-            (apellidosField, apellidosError),
-            (telefonoField,  nil),
-            (correoField,    correoError),
-            (direccionField, nil)
-        ]
-        var prevBottom = contentView.topAnchor
-        var prevConst: CGFloat = p
+            nombresError.topAnchor.constraint(equalTo: nombresField.bottomAnchor, constant: 4),
+            nombresError.leadingAnchor.constraint(equalTo: nombresField.leadingAnchor),
+            nombresError.trailingAnchor.constraint(equalTo: nombresField.trailingAnchor),
 
-        for (field, error) in rows {
-            NSLayoutConstraint.activate([
-                field.topAnchor.constraint(equalTo: prevBottom, constant: prevConst),
-                field.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
-                field.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
-                field.heightAnchor.constraint(equalToConstant: fh),
-            ])
-            if let error {
-                NSLayoutConstraint.activate([
-                    error.topAnchor.constraint(equalTo: field.bottomAnchor, constant: 4),
-                    error.leadingAnchor.constraint(equalTo: field.leadingAnchor),
-                    error.trailingAnchor.constraint(equalTo: field.trailingAnchor),
-                ])
-                prevBottom = error.bottomAnchor
-            } else {
-                prevBottom = field.bottomAnchor
-            }
-            prevConst = p
-        }
+            apellidosError.topAnchor.constraint(equalTo: apellidosField.bottomAnchor, constant: 4),
+            apellidosError.leadingAnchor.constraint(equalTo: apellidosField.leadingAnchor),
+            apellidosError.trailingAnchor.constraint(equalTo: apellidosField.trailingAnchor),
 
-        NSLayoutConstraint.activate([
-            estadoLabel.topAnchor.constraint(equalTo: prevBottom, constant: p + 4),
+            correoError.topAnchor.constraint(equalTo: correoField.bottomAnchor, constant: 4),
+            correoError.leadingAnchor.constraint(equalTo: correoField.leadingAnchor),
+            correoError.trailingAnchor.constraint(equalTo: correoField.trailingAnchor),
+
+            estadoLabel.topAnchor.constraint(equalTo: direccionField.bottomAnchor, constant: p + 4),
             estadoLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
             estadoSwitch.centerYAnchor.constraint(equalTo: estadoLabel.centerYAnchor),
             estadoSwitch.leadingAnchor.constraint(equalTo: estadoLabel.trailingAnchor, constant: p),
@@ -206,7 +169,7 @@ final class FormularioClienteViewController: UIViewController {
             mapHintLabel.topAnchor.constraint(equalTo: mapView.bottomAnchor, constant: 6),
             mapHintLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
             mapHintLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
-            mapHintLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -p)
+            mapHintLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -p),
         ])
     }
 
@@ -361,12 +324,18 @@ final class FormularioClienteViewController: UIViewController {
         _ = validate()
     }
     @objc private func tapToDismiss() { view.endEditing(true) }
+
     @objc private func keyboardWillShow(_ n: NSNotification) {
-        if let frame = n.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+        if let frame = n.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
+           let scrollView = view.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView {
             scrollView.contentInset.bottom = frame.height + 20
         }
     }
-    @objc private func keyboardWillHide(_ n: NSNotification) { scrollView.contentInset.bottom = 0 }
+    @objc private func keyboardWillHide(_ n: NSNotification) {
+        if let scrollView = view.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView {
+            scrollView.contentInset.bottom = 0
+        }
+    }
 
     // MARK: - Validation
 

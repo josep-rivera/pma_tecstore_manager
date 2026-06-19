@@ -6,30 +6,29 @@ final class DetalleClienteViewController: UIViewController {
     // MARK: - Data
     var cliente: Cliente!
 
-    // MARK: - UI
-    private let scrollView   = UIScrollView()
-    private let contentView  = UIView()
+    // MARK: - IBOutlets (storyboard-placed, styled in code)
+    @IBOutlet weak var nameLabel: UILabel!
+    @IBOutlet weak var statusBadge: UILabel!
+    @IBOutlet weak var dniLabel: UILabel!
+    @IBOutlet weak var telefonoLabel: UILabel!
+    @IBOutlet weak var correoLabel: UILabel!
+    @IBOutlet weak var direccionLabel: UILabel!
+    @IBOutlet weak var mapView: MKMapView!
 
+    // MARK: - UI (programmatic — not IBOutlets)
     // Header
     private let avatarView   = UIView()
     private let avatarLetter = UILabel()
-    private let nameLabel    = UILabel()
-    private let statusBadge  = UILabel()
 
     // Contact card
     private let contactCard    = UIView()
-    private let dniLabel       = UILabel()
     private let contactDiv1    = UIView()
-    private let telefonoLabel  = UILabel()
     private let contactDiv2    = UIView()
-    private let correoLabel    = UILabel()
     private let contactDiv3    = UIView()
-    private let direccionLabel = UILabel()
     private let contactDiv4    = UIView()
     private let fechaLabel     = UILabel()
 
-    // Map
-    private let mapView        = MKMapView()
+    // Map supporting
     private let noLocationLabel = UILabel()
 
     // MARK: - Lifecycle
@@ -37,8 +36,8 @@ final class DetalleClienteViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupView()
-        setupScrollView()
-        setupConstraints()
+        setupIBOutletStyling()
+        setupProgrammaticViews()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -57,13 +56,39 @@ final class DetalleClienteViewController: UIViewController {
             title: "Editar", style: .plain, target: self, action: #selector(editCliente))
     }
 
-    private func setupScrollView() {
-        scrollView.translatesAutoresizingMaskIntoConstraints  = false
-        contentView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(scrollView)
-        scrollView.addSubview(contentView)
+    /// Apply styling to IBOutlet views without adding or constraining them (storyboard owns layout).
+    private func setupIBOutletStyling() {
+        nameLabel.font          = AppFont.title2()
+        nameLabel.textColor     = .appTextPrimary
+        nameLabel.textAlignment = .center
+        nameLabel.numberOfLines = 0
 
-        // Avatar (96pt)
+        statusBadge.font               = AppFont.subheadline()
+        statusBadge.textColor          = .white
+        statusBadge.textAlignment      = .center
+        statusBadge.layer.cornerRadius = 10
+        statusBadge.clipsToBounds      = true
+
+        for lbl in [dniLabel, telefonoLabel, correoLabel, direccionLabel] {
+            lbl.font          = AppFont.body()
+            lbl.textColor     = .appTextSecondary
+            lbl.numberOfLines = 0
+        }
+
+        mapView.layer.cornerRadius       = AppLayout.cornerRadius
+        mapView.layer.cornerCurve        = .continuous
+        mapView.clipsToBounds            = true
+        mapView.isUserInteractionEnabled = false
+    }
+
+    /// Add programmatic supplementary views to the storyboard's contentView.
+    /// `nameLabel.superview` is the storyboard-provided contentView inside the scrollView.
+    private func setupProgrammaticViews() {
+        guard let contentView = nameLabel.superview else { return }
+        let ph = AppLayout.paddingLarge
+        let p  = AppLayout.padding
+
+        // Avatar (96pt) — programmatic, positioned above nameLabel
         let avatarSize: CGFloat = 96
         avatarView.translatesAutoresizingMaskIntoConstraints = false
         avatarView.layer.cornerRadius = avatarSize / 2
@@ -77,31 +102,14 @@ final class DetalleClienteViewController: UIViewController {
         avatarView.addSubview(avatarLetter)
         avatarLetter.pinEdges(to: avatarView)
 
-        nameLabel.translatesAutoresizingMaskIntoConstraints = false
-        nameLabel.font          = AppFont.title2()
-        nameLabel.textColor     = .appTextPrimary
-        nameLabel.textAlignment = .center
-        nameLabel.numberOfLines = 0
+        contentView.addSubview(avatarView)
+        contentView.insertSubview(avatarView, belowSubview: nameLabel)
 
-        statusBadge.translatesAutoresizingMaskIntoConstraints = false
-        statusBadge.font               = AppFont.subheadline()
-        statusBadge.textColor          = .white
-        statusBadge.textAlignment      = .center
-        statusBadge.layer.cornerRadius = 10
-        statusBadge.clipsToBounds      = true
-
-        // Contact card
+        // Contact card (programmatic), wrapping the IBOutlet contact labels
         contactCard.translatesAutoresizingMaskIntoConstraints = false
         contactCard.backgroundColor    = .appSurface
         contactCard.layer.cornerRadius = AppLayout.cornerRadius
         contactCard.layer.cornerCurve  = .continuous
-
-        for lbl in [dniLabel, telefonoLabel, correoLabel, direccionLabel] {
-            lbl.translatesAutoresizingMaskIntoConstraints = false
-            lbl.font          = AppFont.body()
-            lbl.textColor     = .appTextSecondary
-            lbl.numberOfLines = 0
-        }
 
         fechaLabel.translatesAutoresizingMaskIntoConstraints = false
         fechaLabel.font      = AppFont.footnote()
@@ -112,68 +120,41 @@ final class DetalleClienteViewController: UIViewController {
             div.backgroundColor = .appSeparator
         }
 
+        // Reparent IBOutlet labels into contactCard
+        for lbl in [dniLabel, telefonoLabel, correoLabel, direccionLabel] {
+            lbl.translatesAutoresizingMaskIntoConstraints = false
+            contactCard.addSubview(lbl!)
+        }
+
         contactCard.addSubviews(
-            dniLabel, contactDiv1,
-            telefonoLabel, contactDiv2,
-            correoLabel, contactDiv3,
-            direccionLabel, contactDiv4,
+            contactDiv1,
+            contactDiv2,
+            contactDiv3,
+            contactDiv4,
             fechaLabel
         )
+        contentView.addSubview(contactCard)
 
-        // Map
-        mapView.translatesAutoresizingMaskIntoConstraints = false
-        mapView.layer.cornerRadius       = AppLayout.cornerRadius
-        mapView.layer.cornerCurve        = .continuous
-        mapView.clipsToBounds            = true
-        mapView.isUserInteractionEnabled = false
-
+        // Map already in contentView via storyboard; reparent mapView is not needed.
+        // noLocationLabel goes on top of mapView
         noLocationLabel.translatesAutoresizingMaskIntoConstraints = false
         noLocationLabel.text          = "Sin ubicación registrada"
         noLocationLabel.font          = AppFont.footnote()
         noLocationLabel.textColor     = .appTextTertiary
         noLocationLabel.textAlignment = .center
-
-        contentView.addSubviews(
-            avatarView, nameLabel, statusBadge,
-            contactCard,
-            mapView, noLocationLabel
-        )
-    }
-
-    private func setupConstraints() {
-        let ph = AppLayout.paddingLarge
-        let p  = AppLayout.padding
+        contentView.addSubview(noLocationLabel)
 
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
-
-            // Header
+            // Avatar above nameLabel (nameLabel is at top+120 per storyboard; we insert avatar above it)
             avatarView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: ph),
             avatarView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
 
-            nameLabel.topAnchor.constraint(equalTo: avatarView.bottomAnchor, constant: p),
-            nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
-            nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
-
-            statusBadge.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 8),
-            statusBadge.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            statusBadge.heightAnchor.constraint(equalToConstant: 30),
-            statusBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 70),
-
-            // Contact card
+            // Contact card below statusBadge (IBOutlet)
             contactCard.topAnchor.constraint(equalTo: statusBadge.bottomAnchor, constant: ph),
             contactCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
             contactCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
 
-            // DNI row
+            // DNI row (IBOutlet)
             dniLabel.topAnchor.constraint(equalTo: contactCard.topAnchor, constant: p),
             dniLabel.leadingAnchor.constraint(equalTo: contactCard.leadingAnchor, constant: p),
             dniLabel.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor, constant: -p),
@@ -183,7 +164,7 @@ final class DetalleClienteViewController: UIViewController {
             contactDiv1.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor),
             contactDiv1.heightAnchor.constraint(equalToConstant: 1),
 
-            // Teléfono row
+            // Teléfono row (IBOutlet)
             telefonoLabel.topAnchor.constraint(equalTo: contactDiv1.bottomAnchor, constant: p),
             telefonoLabel.leadingAnchor.constraint(equalTo: contactCard.leadingAnchor, constant: p),
             telefonoLabel.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor, constant: -p),
@@ -193,7 +174,7 @@ final class DetalleClienteViewController: UIViewController {
             contactDiv2.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor),
             contactDiv2.heightAnchor.constraint(equalToConstant: 1),
 
-            // Correo row
+            // Correo row (IBOutlet)
             correoLabel.topAnchor.constraint(equalTo: contactDiv2.bottomAnchor, constant: p),
             correoLabel.leadingAnchor.constraint(equalTo: contactCard.leadingAnchor, constant: p),
             correoLabel.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor, constant: -p),
@@ -203,7 +184,7 @@ final class DetalleClienteViewController: UIViewController {
             contactDiv3.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor),
             contactDiv3.heightAnchor.constraint(equalToConstant: 1),
 
-            // Dirección row
+            // Dirección row (IBOutlet)
             direccionLabel.topAnchor.constraint(equalTo: contactDiv3.bottomAnchor, constant: p),
             direccionLabel.leadingAnchor.constraint(equalTo: contactCard.leadingAnchor, constant: p),
             direccionLabel.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor, constant: -p),
@@ -213,13 +194,13 @@ final class DetalleClienteViewController: UIViewController {
             contactDiv4.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor),
             contactDiv4.heightAnchor.constraint(equalToConstant: 1),
 
-            // Fecha
+            // Fecha (programmatic)
             fechaLabel.topAnchor.constraint(equalTo: contactDiv4.bottomAnchor, constant: p),
             fechaLabel.leadingAnchor.constraint(equalTo: contactCard.leadingAnchor, constant: p),
             fechaLabel.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor, constant: -p),
             fechaLabel.bottomAnchor.constraint(equalTo: contactCard.bottomAnchor, constant: -p),
 
-            // Map
+            // mapView (IBOutlet) — storyboard placed it in contentView; add constraints for card→map
             mapView.topAnchor.constraint(equalTo: contactCard.bottomAnchor, constant: ph),
             mapView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
             mapView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
@@ -287,9 +268,17 @@ final class DetalleClienteViewController: UIViewController {
     // MARK: - Actions
 
     @objc private func editCliente() {
-        let formVC     = FormularioClienteViewController()
-        formVC.cliente = cliente
-        formVC.onSave  = { }
-        navigationController?.pushViewController(formVC, animated: true)
+        performSegue(withIdentifier: "showEditarCliente", sender: cliente)
+    }
+
+    // MARK: - Navigation
+
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "showEditarCliente",
+           let dest = segue.destination as? FormularioClienteViewController,
+           let c = sender as? Cliente {
+            dest.cliente = c
+            dest.onSave  = { }
+        }
     }
 }

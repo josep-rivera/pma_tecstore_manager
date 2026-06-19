@@ -16,24 +16,22 @@ final class FormularioProductoViewController: UIViewController {
     private let categories = ProductCategory.allCases.map(\.rawValue)
     private var categoryPickerView = UIPickerView()
 
-    // MARK: - UI Elements
-    private let scrollView  = UIScrollView()
-    private let contentView = UIView()
+    // MARK: - IBOutlets
+    @IBOutlet weak var photoImageView: UIImageView!
+    @IBOutlet weak var photoButton: UIButton!
+    @IBOutlet weak var nombreField: UITextField!
+    @IBOutlet weak var categoriaField: UITextField!
+    @IBOutlet weak var precioField: UITextField!
+    @IBOutlet weak var stockField: UITextField!
+    @IBOutlet weak var estadoSwitch: UISwitch!
 
-    private let photoButton     = UIButton(type: .custom)
-    private let photoImageView  = UIImageView()
-
-    private let nombreField     = UITextField()
+    // MARK: - UI (programmatic — not IBOutlets)
     private let nombreError     = AppStyle.makeErrorLabel()
-    private let categoriaField  = UITextField()   // input view = UIPickerView
     private let categoriaError  = AppStyle.makeErrorLabel()
-    private let precioField     = UITextField()
     private let precioError     = AppStyle.makeErrorLabel()
-    private let stockField      = UITextField()
     private let stockError      = AppStyle.makeErrorLabel()
 
-    private let estadoLabel     = AppStyle.makeFieldLabel("Estado")
-    private let estadoSwitch    = UISwitch()
+    private let estadoLabel      = AppStyle.makeFieldLabel("Estado")
     private let estadoValueLabel = UILabel()
 
     // MARK: - Lifecycle
@@ -41,11 +39,10 @@ final class FormularioProductoViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupView()
-        setupScrollView()
         setupPhoto()
         setupFields()
         setupEstado()
-        setupConstraints()
+        setupProgrammaticViews()
         setupKeyboard()
         if isEditMode {
             populateFields()
@@ -73,15 +70,7 @@ final class FormularioProductoViewController: UIViewController {
         view.addGestureRecognizer(tap)
     }
 
-    private func setupScrollView() {
-        scrollView.translatesAutoresizingMaskIntoConstraints  = false
-        contentView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(scrollView)
-        scrollView.addSubview(contentView)
-    }
-
     private func setupPhoto() {
-        photoImageView.translatesAutoresizingMaskIntoConstraints = false
         photoImageView.contentMode        = .scaleAspectFill
         photoImageView.clipsToBounds      = true
         photoImageView.layer.cornerRadius = AppLayout.cornerRadius
@@ -96,15 +85,7 @@ final class FormularioProductoViewController: UIViewController {
         photoImageView.image     = cameraIcon
         photoImageView.tintColor = .appTextTertiary
 
-        photoButton.translatesAutoresizingMaskIntoConstraints = false
         photoButton.addTarget(self, action: #selector(handleSelectPhoto), for: .touchUpInside)
-
-        contentView.addSubviews(photoImageView, photoButton,
-                                nombreField, nombreError,
-                                categoriaField, categoriaError,
-                                precioField, precioError,
-                                stockField, stockError,
-                                estadoLabel, estadoSwitch, estadoValueLabel)
     }
 
     private func setupFields() {
@@ -116,7 +97,6 @@ final class FormularioProductoViewController: UIViewController {
         for (field, ph, icon, keyboard, ret) in configs {
             AppStyle.style(textField: field, placeholder: ph, icon: icon,
                            keyboardType: keyboard, returnKey: ret)
-            field.translatesAutoresizingMaskIntoConstraints = false
             field.delegate = self
             field.addTarget(self, action: #selector(fieldsChanged), for: .editingChanged)
         }
@@ -125,7 +105,6 @@ final class FormularioProductoViewController: UIViewController {
         // Categoria field with UIPickerView as inputView
         AppStyle.style(textField: categoriaField, placeholder: "Selecciona una categoría", icon: "tag.fill")
         categoriaField.text = selectedCategory
-        categoriaField.translatesAutoresizingMaskIntoConstraints = false
         categoriaField.tintColor = .clear   // hide cursor
 
         categoryPickerView.delegate   = self
@@ -146,8 +125,6 @@ final class FormularioProductoViewController: UIViewController {
     }
 
     private func setupEstado() {
-        estadoLabel.translatesAutoresizingMaskIntoConstraints = false
-        estadoSwitch.translatesAutoresizingMaskIntoConstraints = false
         estadoSwitch.isOn = true
         estadoSwitch.onTintColor = .appSuccess
         estadoSwitch.addTarget(self, action: #selector(estadoChanged), for: .valueChanged)
@@ -158,65 +135,46 @@ final class FormularioProductoViewController: UIViewController {
         estadoValueLabel.text      = "Activo"
     }
 
-    private func setupConstraints() {
+    /// Add programmatic error labels and estado row to the storyboard contentView.
+    /// `nombreField.superview` is the storyboard-provided contentView that holds all IBOutlet fields.
+    private func setupProgrammaticViews() {
+        guard let contentView = nombreField.superview else { return }
         let ph = AppLayout.paddingLarge
         let p  = AppLayout.padding
-        let fh = AppLayout.textFieldHeight
-        NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
 
-            // Photo — full-width rectangular preview
-            photoImageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: p),
-            photoImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
-            photoImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
-            photoImageView.heightAnchor.constraint(equalToConstant: 160),
-            photoButton.topAnchor.constraint(equalTo: photoImageView.topAnchor),
-            photoButton.leadingAnchor.constraint(equalTo: photoImageView.leadingAnchor),
-            photoButton.trailingAnchor.constraint(equalTo: photoImageView.trailingAnchor),
-            photoButton.bottomAnchor.constraint(equalTo: photoImageView.bottomAnchor),
-        ])
-
-        // Chain form fields
-        let fieldRows: [(UITextField, UILabel)] = [
-            (nombreField,    nombreError),
-            (categoriaField, categoriaError),
-            (precioField,    precioError),
-            (stockField,     stockError)
-        ]
-        var prevBottom = photoImageView.bottomAnchor
-        var prevConst: CGFloat = p
-
-        for (field, error) in fieldRows {
-            NSLayoutConstraint.activate([
-                field.topAnchor.constraint(equalTo: prevBottom, constant: prevConst),
-                field.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
-                field.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
-                field.heightAnchor.constraint(equalToConstant: fh),
-                error.topAnchor.constraint(equalTo: field.bottomAnchor, constant: 4),
-                error.leadingAnchor.constraint(equalTo: field.leadingAnchor),
-                error.trailingAnchor.constraint(equalTo: field.trailingAnchor)
-            ])
-            prevBottom = error.bottomAnchor
-            prevConst  = p
+        for label in [nombreError, categoriaError, precioError, stockError] {
+            label.translatesAutoresizingMaskIntoConstraints = false
+            contentView.addSubview(label)
         }
 
-        // Estado row
+        estadoLabel.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(estadoLabel)
+        contentView.addSubview(estadoValueLabel)
+
         NSLayoutConstraint.activate([
-            estadoLabel.topAnchor.constraint(equalTo: prevBottom, constant: p + 4),
+            nombreError.topAnchor.constraint(equalTo: nombreField.bottomAnchor, constant: 4),
+            nombreError.leadingAnchor.constraint(equalTo: nombreField.leadingAnchor),
+            nombreError.trailingAnchor.constraint(equalTo: nombreField.trailingAnchor),
+
+            categoriaError.topAnchor.constraint(equalTo: categoriaField.bottomAnchor, constant: 4),
+            categoriaError.leadingAnchor.constraint(equalTo: categoriaField.leadingAnchor),
+            categoriaError.trailingAnchor.constraint(equalTo: categoriaField.trailingAnchor),
+
+            precioError.topAnchor.constraint(equalTo: precioField.bottomAnchor, constant: 4),
+            precioError.leadingAnchor.constraint(equalTo: precioField.leadingAnchor),
+            precioError.trailingAnchor.constraint(equalTo: precioField.trailingAnchor),
+
+            stockError.topAnchor.constraint(equalTo: stockField.bottomAnchor, constant: 4),
+            stockError.leadingAnchor.constraint(equalTo: stockField.leadingAnchor),
+            stockError.trailingAnchor.constraint(equalTo: stockField.trailingAnchor),
+
+            estadoLabel.topAnchor.constraint(equalTo: stockError.bottomAnchor, constant: p + 4),
             estadoLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
             estadoSwitch.centerYAnchor.constraint(equalTo: estadoLabel.centerYAnchor),
             estadoSwitch.leadingAnchor.constraint(equalTo: estadoLabel.trailingAnchor, constant: p),
             estadoValueLabel.centerYAnchor.constraint(equalTo: estadoSwitch.centerYAnchor),
             estadoValueLabel.leadingAnchor.constraint(equalTo: estadoSwitch.trailingAnchor, constant: p),
-            estadoLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -p - 32)
+            estadoLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -p - 32),
         ])
     }
 
@@ -339,13 +297,17 @@ final class FormularioProductoViewController: UIViewController {
 
     @objc private func fieldsChanged() { _ = validate() }
     @objc private func tapToDismiss() { view.endEditing(true) }
+
     @objc private func keyboardWillShow(_ n: NSNotification) {
-        if let frame = n.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+        if let frame = n.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
+           let scrollView = view.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView {
             scrollView.contentInset.bottom = frame.height + 20
         }
     }
     @objc private func keyboardWillHide(_ n: NSNotification) {
-        scrollView.contentInset.bottom = 0
+        if let scrollView = view.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView {
+            scrollView.contentInset.bottom = 0
+        }
     }
 
     // MARK: - Validation

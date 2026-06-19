@@ -7,9 +7,11 @@ final class ListaClientesViewController: UIViewController {
     private var filteredClientes: [Cliente] = []
     private var activeFilter: Int = 0   // 0=Todos 1=Activos 2=Inactivos
 
-    // MARK: - UI
+    // MARK: - IBOutlets
+    @IBOutlet weak var tableView: UITableView!
+
+    // MARK: - UI (programmatic — not IBOutlets)
     private let searchController = UISearchController(searchResultsController: nil)
-    private let tableView        = UITableView(frame: .zero, style: .plain)
     private let emptyLabel       = UILabel()
     private var filterButton:    UIBarButtonItem!
 
@@ -60,14 +62,12 @@ final class ListaClientesViewController: UIViewController {
     }
 
     private func setupTableView() {
-        tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.register(ClienteCell.self, forCellReuseIdentifier: ClienteCell.reuseID)
         tableView.dataSource         = self
         tableView.delegate           = self
         tableView.rowHeight          = UITableView.automaticDimension
         tableView.estimatedRowHeight = AppLayout.cellHeight
         tableView.separatorInset     = UIEdgeInsets(top: 0, left: AppLayout.padding, bottom: 0, right: 0)
-        view.addSubview(tableView)
     }
 
     private func setupEmptyLabel() {
@@ -83,10 +83,6 @@ final class ListaClientesViewController: UIViewController {
     private func setupConstraints() {
         view.backgroundColor = .appBackground
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
@@ -120,9 +116,7 @@ final class ListaClientesViewController: UIViewController {
     // MARK: - Actions
 
     @objc private func addCliente() {
-        let formVC = FormularioClienteViewController()
-        formVC.onSave = { [weak self] in self?.loadData() }
-        navigationController?.pushViewController(formVC, animated: true)
+        performSegue(withIdentifier: "showFormularioCliente", sender: nil)
     }
 
     @objc private func showFilterSheet() {
@@ -137,6 +131,20 @@ final class ListaClientesViewController: UIViewController {
         }
         alert.addAction(UIAlertAction(title: "Cancelar", style: .cancel))
         present(alert, animated: true)
+    }
+
+    // MARK: - Navigation
+
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "showFormularioCliente",
+           let dest = segue.destination as? FormularioClienteViewController {
+            dest.cliente = sender as? Cliente
+            dest.onSave = { [weak self] in self?.loadData() }
+        } else if segue.identifier == "showDetalleCliente",
+                  let dest = segue.destination as? DetalleClienteViewController,
+                  let cliente = sender as? Cliente {
+            dest.cliente = cliente
+        }
     }
 }
 
@@ -158,9 +166,7 @@ extension ListaClientesViewController: UITableViewDataSource {
 extension ListaClientesViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        let detailVC = DetalleClienteViewController()
-        detailVC.cliente = filteredClientes[indexPath.row]
-        navigationController?.pushViewController(detailVC, animated: true)
+        performSegue(withIdentifier: "showDetalleCliente", sender: filteredClientes[indexPath.row])
     }
 
     func tableView(_ tableView: UITableView,

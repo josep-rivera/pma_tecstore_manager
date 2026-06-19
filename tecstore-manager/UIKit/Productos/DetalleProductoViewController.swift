@@ -5,21 +5,21 @@ final class DetalleProductoViewController: UIViewController {
     // MARK: - Data
     var producto: Producto!
 
-    // MARK: - UI
-    private let scrollView     = UIScrollView()
-    private let contentView    = UIView()
-    private let photoImageView = UIImageView()
-    private let nombreLabel    = UILabel()
+    // MARK: - IBOutlets (storyboard-placed, styled in code)
+    @IBOutlet weak var photoImageView: UIImageView!
+    @IBOutlet weak var nombreLabel: UILabel!
+    @IBOutlet weak var precioLabel: UILabel!
+    @IBOutlet weak var stockBadge: UILabel!
+    @IBOutlet weak var estadoBadge: UILabel!
+
+    // MARK: - UI (programmatic — not IBOutlets)
     private let subtitleLabel  = UILabel()
 
     // Info card
     private let infoCard         = UIView()
     private let precioTitleLabel = UILabel()
-    private let precioLabel      = UILabel()
-    private let stockBadge       = UILabel()
     private let cardDiv1         = UIView()
     private let estadoTitleLabel = UILabel()
-    private let estadoBadge      = UILabel()
     private let cardDiv2         = UIView()
     private let fechaLabel       = UILabel()
 
@@ -28,8 +28,8 @@ final class DetalleProductoViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupView()
-        setupScrollView()
-        setupConstraints()
+        setupIBOutletStyling()
+        setupProgrammaticViews()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -48,25 +48,39 @@ final class DetalleProductoViewController: UIViewController {
             title: "Editar", style: .plain, target: self, action: #selector(editProduct))
     }
 
-    private func setupScrollView() {
-        scrollView.translatesAutoresizingMaskIntoConstraints  = false
-        contentView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(scrollView)
-        scrollView.addSubview(contentView)
-
-        photoImageView.translatesAutoresizingMaskIntoConstraints = false
+    /// Apply styling to IBOutlet views without adding or constraining them (storyboard owns layout).
+    private func setupIBOutletStyling() {
         photoImageView.contentMode     = .scaleAspectFill
         photoImageView.clipsToBounds   = true
         photoImageView.backgroundColor = .appSurface
 
-        nombreLabel.translatesAutoresizingMaskIntoConstraints = false
         nombreLabel.font          = AppFont.title2()
         nombreLabel.textColor     = .appTextPrimary
         nombreLabel.numberOfLines = 2
 
+        precioLabel.font      = AppFont.title3()
+        precioLabel.textColor = .brandPrimary
+
+        for badge in [stockBadge, estadoBadge] {
+            badge.font               = AppFont.caption1()
+            badge.textColor          = .white
+            badge.textAlignment      = .center
+            badge.layer.cornerRadius = 10
+            badge.clipsToBounds      = true
+        }
+    }
+
+    /// Add programmatic supplementary views (subtitleLabel, infoCard, etc.) to the storyboard's
+    /// contentView. `nombreLabel.superview` is the storyboard-provided contentView.
+    private func setupProgrammaticViews() {
+        guard let contentView = nombreLabel.superview else { return }
+        let p  = AppLayout.padding
+        let ph = AppLayout.paddingLarge
+
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
         subtitleLabel.font      = AppFont.footnote()
         subtitleLabel.textColor = .appTextSecondary
+        contentView.addSubview(subtitleLabel)
 
         // Info card container
         infoCard.translatesAutoresizingMaskIntoConstraints = false
@@ -82,29 +96,19 @@ final class DetalleProductoViewController: UIViewController {
             lbl.textColor = .appTextSecondary
         }
 
-        precioLabel.translatesAutoresizingMaskIntoConstraints = false
-        precioLabel.font      = AppFont.title3()
-        precioLabel.textColor = .brandPrimary
-
-        // Pill badges: stock + estado
-        for badge in [stockBadge, estadoBadge] {
-            badge.translatesAutoresizingMaskIntoConstraints = false
-            badge.font               = AppFont.caption1()
-            badge.textColor          = .white
-            badge.textAlignment      = .center
-            badge.layer.cornerRadius = 10
-            badge.clipsToBounds      = true
-        }
-
         fechaLabel.translatesAutoresizingMaskIntoConstraints = false
         fechaLabel.font      = AppFont.footnote()
         fechaLabel.textColor = .appTextTertiary
 
-        // Dividers inside card
+        // Dividers
         for div in [cardDiv1, cardDiv2] {
             div.translatesAutoresizingMaskIntoConstraints = false
             div.backgroundColor = .appSeparator
         }
+
+        // IBOutlet badges go inside infoCard
+        stockBadge.translatesAutoresizingMaskIntoConstraints = false
+        estadoBadge.translatesAutoresizingMaskIntoConstraints = false
 
         infoCard.addSubviews(
             precioTitleLabel, precioLabel, stockBadge,
@@ -113,48 +117,21 @@ final class DetalleProductoViewController: UIViewController {
             cardDiv2,
             fechaLabel
         )
-        contentView.addSubviews(photoImageView, nombreLabel, subtitleLabel, infoCard)
-    }
-
-    private func setupConstraints() {
-        let p  = AppLayout.padding
-        let ph = AppLayout.paddingLarge
+        contentView.addSubview(infoCard)
 
         NSLayoutConstraint.activate([
-            // Scroll
-            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
-
-            // Hero photo
-            photoImageView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            photoImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            photoImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            photoImageView.heightAnchor.constraint(equalToConstant: 260),
-
-            // Nombre
-            nombreLabel.topAnchor.constraint(equalTo: photoImageView.bottomAnchor, constant: ph),
-            nombreLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
-            nombreLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
-
-            // Subtitle
+            // Subtitle below nombreLabel (IBOutlet)
             subtitleLabel.topAnchor.constraint(equalTo: nombreLabel.bottomAnchor, constant: 6),
             subtitleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
             subtitleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
 
-            // Info card
+            // Info card below subtitle
             infoCard.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: ph),
             infoCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
             infoCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
             infoCard.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -ph),
 
-            // Row 1: Precio (title, left) | price value (trailing of title) | stockBadge (right)
+            // Row 1: Precio title | precioLabel (IBOutlet) | stockBadge (IBOutlet)
             precioTitleLabel.topAnchor.constraint(equalTo: infoCard.topAnchor, constant: p),
             precioTitleLabel.leadingAnchor.constraint(equalTo: infoCard.leadingAnchor, constant: p),
             precioTitleLabel.bottomAnchor.constraint(equalTo: cardDiv1.topAnchor, constant: -p),
@@ -172,7 +149,7 @@ final class DetalleProductoViewController: UIViewController {
             cardDiv1.trailingAnchor.constraint(equalTo: infoCard.trailingAnchor),
             cardDiv1.heightAnchor.constraint(equalToConstant: 1),
 
-            // Row 2: Estado
+            // Row 2: Estado title | estadoBadge (IBOutlet)
             estadoTitleLabel.topAnchor.constraint(equalTo: cardDiv1.bottomAnchor, constant: p),
             estadoTitleLabel.leadingAnchor.constraint(equalTo: infoCard.leadingAnchor, constant: p),
             estadoTitleLabel.bottomAnchor.constraint(equalTo: cardDiv2.topAnchor, constant: -p),
@@ -222,9 +199,17 @@ final class DetalleProductoViewController: UIViewController {
     // MARK: - Actions
 
     @objc private func editProduct() {
-        let formVC      = FormularioProductoViewController()
-        formVC.producto = producto
-        formVC.onSave   = { }
-        navigationController?.pushViewController(formVC, animated: true)
+        performSegue(withIdentifier: "showEditarProducto", sender: producto)
+    }
+
+    // MARK: - Navigation
+
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "showEditarProducto",
+           let dest = segue.destination as? FormularioProductoViewController,
+           let p = sender as? Producto {
+            dest.producto = p
+            dest.onSave   = { }
+        }
     }
 }
