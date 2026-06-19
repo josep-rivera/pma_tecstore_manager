@@ -44,12 +44,6 @@ final class ListaClientesViewController: UIViewController {
             action: #selector(showFilterSheet)
         )
         navigationItem.leftBarButtonItem  = filterButton
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            image:  UIImage(systemName: "plus"),
-            style:  .plain,
-            target: self,
-            action: #selector(addCliente)
-        )
     }
 
     private func setupSearch() {
@@ -62,7 +56,6 @@ final class ListaClientesViewController: UIViewController {
     }
 
     private func setupTableView() {
-        tableView.register(ClienteCell.self, forCellReuseIdentifier: ClienteCell.reuseID)
         tableView.dataSource         = self
         tableView.delegate           = self
         tableView.rowHeight          = UITableView.automaticDimension
@@ -115,10 +108,6 @@ final class ListaClientesViewController: UIViewController {
 
     // MARK: - Actions
 
-    @objc private func addCliente() {
-        performSegue(withIdentifier: "showFormularioCliente", sender: nil)
-    }
-
     @objc private func showFilterSheet() {
         let titles = ["Todos", "Activos", "Inactivos"]
         let alert  = UIAlertController(title: "Filtrar clientes", message: nil, preferredStyle: .actionSheet)
@@ -136,14 +125,12 @@ final class ListaClientesViewController: UIViewController {
     // MARK: - Navigation
 
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "showFormularioCliente",
-           let dest = segue.destination as? FormularioClienteViewController {
-            dest.cliente = sender as? Cliente
+        if let dest = segue.destination as? FormularioClienteViewController {
+            dest.cliente = nil
             dest.onSave = { [weak self] in self?.loadData() }
-        } else if segue.identifier == "showDetalleCliente",
-                  let dest = segue.destination as? DetalleClienteViewController,
-                  let cliente = sender as? Cliente {
-            dest.cliente = cliente
+        } else if let dest = segue.destination as? DetalleClienteViewController {
+            guard let ip = tableView.indexPathForSelectedRow else { return }
+            dest.cliente = filteredClientes[ip.row]
         }
     }
 }
@@ -166,7 +153,6 @@ extension ListaClientesViewController: UITableViewDataSource {
 extension ListaClientesViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        performSegue(withIdentifier: "showDetalleCliente", sender: filteredClientes[indexPath.row])
     }
 
     func tableView(_ tableView: UITableView,
@@ -207,7 +193,7 @@ final class ClienteCell: UITableViewCell {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         buildUI()
     }
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder: NSCoder) { super.init(coder: coder); buildUI() }
 
     private func buildUI() {
         backgroundColor = .appBackground

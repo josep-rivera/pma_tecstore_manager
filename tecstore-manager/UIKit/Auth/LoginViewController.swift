@@ -108,7 +108,6 @@ final class LoginViewController: UIViewController {
         loginButton.addTarget(self, action: #selector(handleLogin), for: .touchUpInside)
 
         AppStyle.applyText(to: registerButton, title: "Crear una cuenta nueva")
-        registerButton.addTarget(self, action: #selector(handleGoToRegister), for: .touchUpInside)
     }
 
     /// Add error labels and seed credentials to the view hierarchy.
@@ -199,9 +198,6 @@ final class LoginViewController: UIViewController {
         }
     }
 
-    @objc private func handleGoToRegister() {
-        performSegue(withIdentifier: "showRegistro", sender: nil)
-    }
     @objc private func fieldsChanged()   { _ = validate() }
     @objc private func tapToDismiss() { view.endEditing(true) }
 

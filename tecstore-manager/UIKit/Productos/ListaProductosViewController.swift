@@ -37,12 +37,6 @@ final class ListaProductosViewController: UIViewController {
     private func setupNavigation() {
         title = "Productos"
         navigationItem.largeTitleDisplayMode = .never
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            image:  UIImage(systemName: "plus"),
-            style:  .plain,
-            target: self,
-            action: #selector(addProduct)
-        )
     }
 
     private func setupSegmentedControl() {
@@ -60,7 +54,6 @@ final class ListaProductosViewController: UIViewController {
     }
 
     private func setupTableView() {
-        tableView.register(ProductoCell.self, forCellReuseIdentifier: ProductoCell.reuseID)
         tableView.dataSource         = self
         tableView.delegate           = self
         tableView.rowHeight          = UITableView.automaticDimension
@@ -108,10 +101,6 @@ final class ListaProductosViewController: UIViewController {
 
     // MARK: - Actions
 
-    @objc private func addProduct() {
-        performSegue(withIdentifier: "showFormularioProducto", sender: nil)
-    }
-
     @objc private func segmentChanged() {
         activeFilter = segmentedControl.selectedSegmentIndex
         applyFilters()
@@ -120,14 +109,12 @@ final class ListaProductosViewController: UIViewController {
     // MARK: - Navigation
 
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "showFormularioProducto",
-           let dest = segue.destination as? FormularioProductoViewController {
-            dest.producto = sender as? Producto
-            dest.onSave = { [weak self] in self?.loadData() }
-        } else if segue.identifier == "showDetalleProducto",
-                  let dest = segue.destination as? DetalleProductoViewController,
-                  let producto = sender as? Producto {
-            dest.producto = producto
+        if let dest = segue.destination as? FormularioProductoViewController {
+            dest.producto = nil
+            dest.onSave   = { [weak self] in self?.loadData() }
+        } else if let dest = segue.destination as? DetalleProductoViewController {
+            guard let ip = tableView.indexPathForSelectedRow else { return }
+            dest.producto = filteredProductos[ip.row]
         }
     }
 }
@@ -159,7 +146,6 @@ extension ListaProductosViewController: UITableViewDataSource {
 extension ListaProductosViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        performSegue(withIdentifier: "showDetalleProducto", sender: filteredProductos[indexPath.row])
     }
 
     func tableView(
@@ -190,7 +176,7 @@ extension ListaProductosViewController: UITableViewDelegate {
 // MARK: - ProductoCell
 // ─────────────────────────────────────────────
 
-private final class ProductoCell: UITableViewCell {
+final class ProductoCell: UITableViewCell {
 
     static let reuseID = "ProductoCell"
 
@@ -205,7 +191,7 @@ private final class ProductoCell: UITableViewCell {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         buildUI()
     }
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder: NSCoder) { super.init(coder: coder); buildUI() }
 
     private func buildUI() {
         backgroundColor = .appBackground

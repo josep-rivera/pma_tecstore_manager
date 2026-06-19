@@ -52,8 +52,6 @@ final class DetalleClienteViewController: UIViewController {
         view.backgroundColor = .appBackground
         title = "Detalle del cliente"
         navigationItem.largeTitleDisplayMode = .never
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: "Editar", style: .plain, target: self, action: #selector(editCliente))
     }
 
     /// Apply styling to IBOutlet views without adding or constraining them (storyboard owns layout).
@@ -267,19 +265,11 @@ final class DetalleClienteViewController: UIViewController {
         }
     }
 
-    // MARK: - Actions
-
-    @objc private func editCliente() {
-        performSegue(withIdentifier: "showEditarCliente", sender: cliente)
-    }
-
     // MARK: - Navigation
 
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "showEditarCliente",
-           let dest = segue.destination as? FormularioClienteViewController,
-           let c = sender as? Cliente {
-            dest.cliente = c
+        if let dest = segue.destination as? FormularioClienteViewController {
+            dest.cliente = cliente
             dest.onSave  = { }
         }
     }

@@ -44,8 +44,6 @@ final class DetalleProductoViewController: UIViewController {
         view.backgroundColor = .appBackground
         title = "Detalle del producto"
         navigationItem.largeTitleDisplayMode = .never
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: "Editar", style: .plain, target: self, action: #selector(editProduct))
     }
 
     private func setupIBOutletStyling() {
@@ -181,17 +179,11 @@ final class DetalleProductoViewController: UIViewController {
         fechaRow.configure(icon: "calendar", title: "Registrado", value: p.registrationDate.displayDate)
     }
 
-    // MARK: - Actions
-
-    @objc private func editProduct() {
-        performSegue(withIdentifier: "showEditarProducto", sender: producto)
-    }
+    // MARK: - Navigation
 
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "showEditarProducto",
-           let dest = segue.destination as? FormularioProductoViewController,
-           let p = sender as? Producto {
-            dest.producto = p
+        if let dest = segue.destination as? FormularioProductoViewController {
+            dest.producto = producto
             dest.onSave   = { }
         }
     }

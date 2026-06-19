@@ -55,6 +55,9 @@
                                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="BBB-23-rbt">
                                                 <rect key="frame" x="24" y="474" width="345" height="44"/>
                                                 <state key="normal" title="Crear cuenta"/>
+                                                <connections>
+                                                    <segue destination="CCC-11-rvc" kind="show" id="BBB-80-seg"/>
+                                                </connections>
                                             </button>
                                         </subviews>
                                         <constraints>
@@ -102,7 +105,6 @@
                         <outlet property="loginButton" destination="BBB-22-lbt" id="BBB-72-o03"/>
                         <outlet property="passwordField" destination="BBB-21-pwf" id="BBB-71-o02"/>
                         <outlet property="registerButton" destination="BBB-23-rbt" id="BBB-73-o04"/>
-                        <segue destination="CCC-11-rvc" kind="show" identifier="showRegistro" id="BBB-80-seg"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="BBB-16-frs" sceneMemberID="firstResponder"/>
@@ -231,6 +233,15 @@
                             </segmentedControl>
                             <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="22" sectionFooterHeight="22" translatesAutoresizingMaskIntoConstraints="NO" id="DDD-21-tbv">
                                 <rect key="frame" x="0.0" y="211" width="393" height="641"/>
+                                <prototypes>
+                                    <tableViewCell contentMode="scaleToFill" selectionStyle="default" indentationWidth="10" reuseIdentifier="ProductoCell" id="DDD-22-cel" customClass="ProductoCell" customModule="tecstore_manager" customModuleProvider="target">
+                                        <rect key="frame" x="0.0" y="50" width="393" height="51"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <connections>
+                                            <segue destination="FFF-11-dvc" kind="show" id="DDD-51-sg2"/>
+                                        </connections>
+                                    </tableViewCell>
+                                </prototypes>
                             </tableView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="DDD-15-sag"/>
@@ -245,11 +256,16 @@
                             <constraint firstItem="DDD-21-tbv" firstAttribute="bottom" secondItem="DDD-12-vew" secondAttribute="bottom" id="DDD-36-c07"/>
                         </constraints>
                     </view>
+                    <navigationItem key="navigationItem" id="DDD-90-nvi">
+                        <barButtonItem key="rightBarButtonItem" systemItem="add" id="DDD-91-bbi">
+                            <connections>
+                                <segue destination="EEE-11-fvc" kind="show" id="DDD-50-sg1"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
                     <connections>
                         <outlet property="segmentedControl" destination="DDD-20-sgc" id="DDD-40-o01"/>
                         <outlet property="tableView" destination="DDD-21-tbv" id="DDD-41-o02"/>
-                        <segue destination="EEE-11-fvc" kind="show" identifier="showFormularioProducto" id="DDD-50-sg1"/>
-                        <segue destination="FFF-11-dvc" kind="show" identifier="showDetalleProducto" id="DDD-51-sg2"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="DDD-16-frs" sceneMemberID="firstResponder"/>
@@ -439,13 +455,19 @@
                             <constraint firstItem="FFF-13-scv" firstAttribute="bottom" secondItem="FFF-12-vew" secondAttribute="bottom" id="FFF-63-c23"/>
                         </constraints>
                     </view>
+                    <navigationItem key="navigationItem" id="FFF-90-nvi">
+                        <barButtonItem key="rightBarButtonItem" title="Editar" id="FFF-91-bbi">
+                            <connections>
+                                <segue destination="EEE-11-fvc" kind="show" id="FFF-80-seg"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
                     <connections>
                         <outlet property="estadoBadge" destination="FFF-24-edb" id="FFF-74-o05"/>
                         <outlet property="nombreLabel" destination="FFF-21-nml" id="FFF-71-o02"/>
                         <outlet property="photoImageView" destination="FFF-20-img" id="FFF-70-o01"/>
                         <outlet property="precioLabel" destination="FFF-22-prl" id="FFF-72-o03"/>
                         <outlet property="stockBadge" destination="FFF-23-skb" id="FFF-73-o04"/>
-                        <segue destination="EEE-11-fvc" kind="show" identifier="showEditarProducto" id="FFF-80-seg"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="FFF-16-frs" sceneMemberID="firstResponder"/>
@@ -462,6 +484,15 @@
                         <subviews>
                             <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="22" sectionFooterHeight="22" translatesAutoresizingMaskIntoConstraints="NO" id="GGG-20-tbv">
                                 <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                                <prototypes>
+                                    <tableViewCell contentMode="scaleToFill" selectionStyle="default" indentationWidth="10" reuseIdentifier="ClienteCell" id="GGG-22-cel" customClass="ClienteCell" customModule="tecstore_manager" customModuleProvider="target">
+                                        <rect key="frame" x="0.0" y="50" width="393" height="51"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <connections>
+                                            <segue destination="III-11-dvc" kind="show" id="GGG-51-sg2"/>
+                                        </connections>
+                                    </tableViewCell>
+                                </prototypes>
                             </tableView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="GGG-15-sag"/>
@@ -473,10 +504,15 @@
                             <constraint firstItem="GGG-20-tbv" firstAttribute="bottom" secondItem="GGG-12-vew" secondAttribute="bottom" id="GGG-33-c04"/>
                         </constraints>
                     </view>
+                    <navigationItem key="navigationItem" id="GGG-90-nvi">
+                        <barButtonItem key="rightBarButtonItem" systemItem="add" id="GGG-91-bbi">
+                            <connections>
+                                <segue destination="HHH-11-fvc" kind="show" id="GGG-50-sg1"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
                     <connections>
                         <outlet property="tableView" destination="GGG-20-tbv" id="GGG-40-o01"/>
-                        <segue destination="HHH-11-fvc" kind="show" identifier="showFormularioCliente" id="GGG-50-sg1"/>
-                        <segue destination="III-11-dvc" kind="show" identifier="showDetalleCliente" id="GGG-51-sg2"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="GGG-16-frs" sceneMemberID="firstResponder"/>
@@ -691,6 +727,13 @@
                             <constraint firstItem="III-13-scv" firstAttribute="bottom" secondItem="III-12-vew" secondAttribute="bottom" id="III-73-c32"/>
                         </constraints>
                     </view>
+                    <navigationItem key="navigationItem" id="III-91-nvi">
+                        <barButtonItem key="rightBarButtonItem" title="Editar" id="III-92-bbi">
+                            <connections>
+                                <segue destination="HHH-11-fvc" kind="show" id="III-90-seg"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
                     <connections>
                         <outlet property="correoLabel" destination="III-24-col" id="III-84-o05"/>
                         <outlet property="direccionLabel" destination="III-25-drl" id="III-85-o06"/>
@@ -699,7 +742,6 @@
                         <outlet property="nameLabel" destination="III-20-nml" id="III-80-o01"/>
                         <outlet property="statusBadge" destination="III-21-stb" id="III-81-o02"/>
                         <outlet property="telefonoLabel" destination="III-23-tll" id="III-83-o04"/>
-                        <segue destination="HHH-11-fvc" kind="show" identifier="showEditarCliente" id="III-90-seg"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="III-16-frs" sceneMemberID="firstResponder"/>
@@ -820,7 +862,7 @@
                         <segue destination="HST-09-bsq" kind="show" identifier="showBusquedas" id="I01-sg-bsq"/>
                         <segue destination="HST-10-rpt" kind="show" identifier="showReportes" id="I01-sg-rpt"/>
                         <segue destination="HST-11-stk" kind="show" identifier="showStockBajo" id="I01-sg-stk"/>
-                        <segue destination="HST-07-rgv" kind="push" identifier="showNuevaVentaModal" id="I01-sg-nvt"/>
+                        <segue destination="HST-07-rgv" kind="show" identifier="showNuevaVentaModal" id="I01-sg-nvt"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="H01-14-frs" sceneMemberID="firstResponder"/>
@@ -953,9 +995,9 @@
         </scene>
     </scenes>
     <inferredMetricsTieBreakers>
-        <segue reference="I01-sg-nvt"/>
+        <segue reference="V04-sg-rgv"/>
         <segue reference="GGG-50-sg1"/>
-        <segue reference="FFF-80-seg"/>
+        <segue reference="DDD-50-sg1"/>
     </inferredMetricsTieBreakers>
     <resources>
         <systemColor name="systemBackgroundColor">
