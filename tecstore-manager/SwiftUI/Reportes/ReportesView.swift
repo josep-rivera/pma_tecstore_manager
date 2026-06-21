@@ -165,7 +165,7 @@ struct TrendChart: View {
             AxisMarks(values: .automatic(desiredCount: 3))
         }
         .padding(CGFloat(AppLayout.padding))
-        .background(Color(UIColor.appSurface))
+        .background(Color(UIColor.appBackground))
         .cornerRadius(CGFloat(AppLayout.cornerRadius))
         .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
     }
@@ -207,7 +207,7 @@ struct CategoryRevenueChart: View {
             }
         }
         .padding(CGFloat(AppLayout.padding))
-        .background(Color(UIColor.appSurface))
+        .background(Color(UIColor.appBackground))
         .cornerRadius(CGFloat(AppLayout.cornerRadius))
         .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
     }
@@ -248,7 +248,7 @@ struct TopProductosCard: View {
                 }
             }
         }
-        .background(Color(UIColor.appSurface))
+        .background(Color(UIColor.appBackground))
         .cornerRadius(CGFloat(AppLayout.cornerRadius))
         .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
     }
@@ -302,7 +302,7 @@ struct ReporteCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(CGFloat(AppLayout.padding))
-        .background(Color(UIColor.appSurface))
+        .background(Color(UIColor.appBackground))
         .cornerRadius(CGFloat(AppLayout.cornerRadius))
         .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
     }
@@ -341,7 +341,7 @@ struct ReporteAlertCard: View {
             Spacer()
         }
         .padding(CGFloat(AppLayout.padding))
-        .background(Color(UIColor.appSurface))
+        .background(Color(UIColor.appBackground))
         .cornerRadius(CGFloat(AppLayout.cornerRadius))
         .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
     }
