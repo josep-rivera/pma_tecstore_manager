@@ -9,6 +9,7 @@ final class FormularioClienteViewController: UIViewController {
     var onSave:  (() -> Void)?
 
     private var isEditMode: Bool { cliente != nil }
+    private var hasAttemptedSubmit = false
     private var selectedLatitude:  Double = 0
     private var selectedLongitude: Double = 0
     private var selectedAnnotation = MKPointAnnotation()
@@ -26,6 +27,9 @@ final class FormularioClienteViewController: UIViewController {
     @IBOutlet weak var estadoSwitch: UISwitch!
     @IBOutlet weak var mapView: MKMapView!
 
+    // Storyboard-placed static label
+    @IBOutlet weak var locationHeaderLabel: UILabel!
+
     // MARK: - UI
     private let dniError       = AppStyle.makeErrorLabel()
     private let nombresError   = AppStyle.makeErrorLabel()
@@ -35,8 +39,7 @@ final class FormularioClienteViewController: UIViewController {
     private let estadoLabel      = AppStyle.makeFieldLabel("Estado")
     private let estadoValueLabel = UILabel()
 
-    private let locationHeaderLabel  = UILabel()
-    private let mapHintLabel         = UILabel()
+    private let mapHintLabel = UILabel()
 
     // MARK: - Lifecycle
 
@@ -68,8 +71,7 @@ final class FormularioClienteViewController: UIViewController {
         view.backgroundColor = .appBackground
         title = isEditMode ? "Editar cliente" : "Nuevo cliente"
         navigationItem.largeTitleDisplayMode = .never
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: "Guardar", style: .prominent, target: self, action: #selector(handleSave))
+        // Save bar button wired via storyboard @IBAction (handleSave:)
         let tap = UITapGestureRecognizer(target: self, action: #selector(tapToDismiss))
         tap.cancelsTouchesInView = false
         view.addGestureRecognizer(tap)
@@ -88,19 +90,17 @@ final class FormularioClienteViewController: UIViewController {
             AppStyle.style(textField: field, placeholder: ph, icon: icon,
                            isSecure: sec, keyboardType: kb, returnKey: ret)
             field.delegate = self
-            field.addTarget(self, action: #selector(fieldsChanged), for: .editingChanged)
+            // editingChanged wired via @IBAction in storyboard
         }
         nombresField.autocapitalizationType   = .words
         apellidosField.autocapitalizationType = .words
         direccionField.autocapitalizationType = .words
-        dniField.addTarget(self, action: #selector(dniChanged), for: .editingChanged)
-        direccionField.addTarget(self, action: #selector(direccionChanged), for: .editingChanged)
     }
 
     private func setupEstado() {
         estadoSwitch.isOn       = true
         estadoSwitch.onTintColor = .appSuccess
-        estadoSwitch.addTarget(self, action: #selector(estadoChanged), for: .valueChanged)
+        // estadoSwitch valueChanged wired via @IBAction in storyboard
 
         estadoValueLabel.translatesAutoresizingMaskIntoConstraints = false
         estadoValueLabel.font      = AppFont.subheadline()
@@ -116,7 +116,8 @@ final class FormularioClienteViewController: UIViewController {
         mapView.addGestureRecognizer(tap)
     }
 
-    /// Add programmatic error labels, estado row, and location header+hint to the storyboard contentView.
+    /// Add programmatic error labels, estado row, and map hint to the storyboard contentView.
+    /// `locationHeaderLabel` is storyboard-placed; styling applied here.
     /// `dniField.superview` is the storyboard-provided contentView inside the scrollView.
     private func setupProgrammaticViews() {
         guard let contentView = dniField.superview else { return }
@@ -132,11 +133,9 @@ final class FormularioClienteViewController: UIViewController {
         contentView.addSubview(estadoLabel)
         contentView.addSubview(estadoValueLabel)
 
-        locationHeaderLabel.translatesAutoresizingMaskIntoConstraints = false
-        locationHeaderLabel.text      = "Ubicación del cliente"
+        // locationHeaderLabel comes from storyboard; apply styling
         locationHeaderLabel.font      = AppFont.headline()
         locationHeaderLabel.textColor = .appTextPrimary
-        contentView.addSubview(locationHeaderLabel)
 
         mapHintLabel.translatesAutoresizingMaskIntoConstraints = false
         mapHintLabel.text          = "Toca el mapa para colocar el pin"
@@ -169,9 +168,7 @@ final class FormularioClienteViewController: UIViewController {
             estadoValueLabel.centerYAnchor.constraint(equalTo: estadoSwitch.centerYAnchor),
             estadoValueLabel.leadingAnchor.constraint(equalTo: estadoSwitch.trailingAnchor, constant: p),
 
-            locationHeaderLabel.topAnchor.constraint(equalTo: estadoLabel.bottomAnchor, constant: ph),
-            locationHeaderLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
-
+            // locationHeaderLabel is storyboard-placed (storyboard owns its top/leading constraints)
             mapView.topAnchor.constraint(equalTo: locationHeaderLabel.bottomAnchor, constant: p),
             mapView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
             mapView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
@@ -240,7 +237,8 @@ final class FormularioClienteViewController: UIViewController {
 
     // MARK: - Actions
 
-    @objc private func handleSave() {
+    @IBAction private func handleSave(_ sender: Any) {
+        hasAttemptedSubmit = true
         guard validate() else { return }
         do {
             let dni       = dniField.text?.trimmed ?? ""
@@ -296,7 +294,7 @@ final class FormularioClienteViewController: UIViewController {
         }
     }
 
-    @objc private func direccionChanged() {
+    @IBAction @objc private func direccionChanged(_ sender: UITextField) {
         geocodeTimer?.invalidate()
         let text = direccionField.text?.trimmed ?? ""
         guard text.count > 6 else { return }
@@ -321,18 +319,20 @@ final class FormularioClienteViewController: UIViewController {
         }
     }
 
-    @objc private func estadoChanged() { updateEstadoLabel() }
+    @IBAction @objc private func estadoChanged(_ sender: UISwitch) { updateEstadoLabel() }
     private func updateEstadoLabel() {
         estadoValueLabel.text      = estadoSwitch.isOn ? "Activo" : "Inactivo"
         estadoValueLabel.textColor = estadoSwitch.isOn ? .appSuccess : .appTextSecondary
     }
 
-    @objc private func fieldsChanged() { _ = validate() }
-    @objc private func dniChanged() {
+    @IBAction @objc private func fieldsChanged(_ sender: UITextField) {
+        if hasAttemptedSubmit { _ = validate() }
+    }
+    @IBAction @objc private func dniChanged(_ sender: UITextField) {
         if let text = dniField.text, text.count > 8 {
             dniField.text = String(text.prefix(8))
         }
-        _ = validate()
+        if hasAttemptedSubmit { _ = validate() }
     }
     @objc private func tapToDismiss() { view.endEditing(true) }
 
@@ -381,7 +381,6 @@ final class FormularioClienteViewController: UIViewController {
             valid = false
         } else { clearError(correoError, correoField) }
 
-        navigationItem.rightBarButtonItem?.isEnabled = valid
         return valid
     }
 

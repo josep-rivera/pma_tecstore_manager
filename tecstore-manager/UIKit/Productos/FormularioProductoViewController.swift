@@ -8,6 +8,7 @@ final class FormularioProductoViewController: UIViewController {
     var onSave: (() -> Void)?
 
     private var isEditMode: Bool { producto != nil }
+    private var hasAttemptedSubmit = false
     private var selectedPhotoPath: String?
     private var selectedCategory: String = ProductCategory.otros.rawValue
     private var generatedCode: String = ""
@@ -63,14 +64,14 @@ final class FormularioProductoViewController: UIViewController {
         view.backgroundColor = .appBackground
         title = isEditMode ? "Editar producto" : "Nuevo producto"
         navigationItem.largeTitleDisplayMode = .never
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: "Guardar", style: .prominent, target: self, action: #selector(handleSave))
+        // Save bar button wired via storyboard @IBAction (handleSave:)
         let tap = UITapGestureRecognizer(target: self, action: #selector(tapToDismiss))
         tap.cancelsTouchesInView = false
         view.addGestureRecognizer(tap)
     }
 
     private func setupPhoto() {
+        // Initial "camera.fill" placeholder image is set in storyboard; style the container here
         photoImageView.contentMode        = .center
         photoImageView.clipsToBounds      = true
         photoImageView.layer.cornerRadius = AppLayout.cornerRadius
@@ -78,14 +79,9 @@ final class FormularioProductoViewController: UIViewController {
         photoImageView.layer.borderWidth  = 1.5
         photoImageView.layer.borderColor  = UIColor.brandLight.cgColor
         photoImageView.backgroundColor    = .appSurface
+        photoImageView.tintColor          = .appTextTertiary
 
-        let cameraIcon = UIImage(systemName: "camera.fill")?
-            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 28, weight: .light))
-            .withRenderingMode(.alwaysTemplate)
-        photoImageView.image     = cameraIcon
-        photoImageView.tintColor = .appTextTertiary
-
-        photoButton.addTarget(self, action: #selector(handleSelectPhoto), for: .touchUpInside)
+        // photoButton wired via @IBAction in storyboard
     }
 
     private func setupFields() {
@@ -98,7 +94,7 @@ final class FormularioProductoViewController: UIViewController {
             AppStyle.style(textField: field, placeholder: ph, icon: icon,
                            keyboardType: keyboard, returnKey: ret)
             field.delegate = self
-            field.addTarget(self, action: #selector(fieldsChanged), for: .editingChanged)
+            // editingChanged wired via @IBAction in storyboard
         }
         nombreField.autocapitalizationType = .words
 
@@ -121,13 +117,13 @@ final class FormularioProductoViewController: UIViewController {
                                          target: self, action: #selector(categoryPickerDone))
         toolbar.setItems([flexSpace, doneBtn], animated: false)
         categoriaField.inputAccessoryView = toolbar
-        categoriaField.addTarget(self, action: #selector(fieldsChanged), for: .editingChanged)
+        // categoriaField editingChanged wired via @IBAction in storyboard
     }
 
     private func setupEstado() {
         estadoSwitch.isOn = true
         estadoSwitch.onTintColor = .appSuccess
-        estadoSwitch.addTarget(self, action: #selector(estadoChanged), for: .valueChanged)
+        // estadoSwitch valueChanged wired via @IBAction in storyboard
 
         estadoValueLabel.translatesAutoresizingMaskIntoConstraints = false
         estadoValueLabel.font      = AppFont.subheadline()
@@ -214,7 +210,8 @@ final class FormularioProductoViewController: UIViewController {
 
     // MARK: - Actions
 
-    @objc private func handleSave() {
+    @IBAction private func handleSave(_ sender: Any) {
+        hasAttemptedSubmit = true
         guard validate() else { return }
 
         let code      = generatedCode
@@ -246,7 +243,7 @@ final class FormularioProductoViewController: UIViewController {
         }
     }
 
-    @objc private func handleSelectPhoto() {
+    @IBAction @objc private func handleSelectPhoto(_ sender: UIButton) {
         showImageSourcePicker { [weak self] in self?.openCamera() }
                               onGallery: { [weak self] in self?.openGallery() }
     }
@@ -290,14 +287,16 @@ final class FormularioProductoViewController: UIViewController {
         generatedCode = ProductoService.shared.generateCode(for: selectedCategory)
     }
 
-    @objc private func estadoChanged() { updateEstadoLabel() }
+    @IBAction @objc private func estadoChanged(_ sender: UISwitch) { updateEstadoLabel() }
 
     private func updateEstadoLabel() {
         estadoValueLabel.text      = estadoSwitch.isOn ? "Activo" : "Inactivo"
         estadoValueLabel.textColor = estadoSwitch.isOn ? .appSuccess : .appTextSecondary
     }
 
-    @objc private func fieldsChanged() { _ = validate() }
+    @IBAction @objc private func fieldsChanged(_ sender: UITextField) {
+        if hasAttemptedSubmit { _ = validate() }
+    }
     @objc private func tapToDismiss() { view.endEditing(true) }
 
     @objc private func keyboardWillShow(_ n: NSNotification) {
@@ -353,7 +352,6 @@ final class FormularioProductoViewController: UIViewController {
             valid = false
         } else { clearError(stockError, stockField) }
 
-        navigationItem.rightBarButtonItem?.isEnabled = valid
         return valid
     }
 
