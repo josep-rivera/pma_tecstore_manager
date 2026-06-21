@@ -83,6 +83,8 @@ final class PerfilViewModel: ObservableObject {
 
 struct PerfilView: View {
 
+    var onAcercaDe: () -> Void = {}
+
     @StateObject private var viewModel    = PerfilViewModel()
     @State private var showChangePassword = false
     @State private var selectedPhoto:     PhotosPickerItem? = nil
@@ -142,8 +144,9 @@ struct PerfilView: View {
 
             // ── App Info ──
             Section("Acerca de la app") {
-                NavigationLink(destination: AcercaDeView()) {
+                Button(action: onAcercaDe) {
                     Label("Acerca de TecStore Manager", systemImage: "info.circle")
+                        .foregroundColor(.primary)
                 }
             }
 
