@@ -109,7 +109,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 extension Notification.Name {
     static let userDidLogout    = Notification.Name("userDidLogout")
-    static let darkModeChanged  = Notification.Name("darkModeChanged")
     static let salesDataChanged = Notification.Name("salesDataChanged")
 }
 
