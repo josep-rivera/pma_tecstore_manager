@@ -10,10 +10,10 @@ final class ListaProductosViewController: UIViewController {
     // MARK: - IBOutlets
     @IBOutlet weak var segmentedControl: UISegmentedControl!
     @IBOutlet weak var tableView: UITableView!
+    @IBOutlet weak var emptyLabel: UILabel!
 
     // MARK: - UI Elements (programmatic — not IBOutlets)
-    private let searchController  = UISearchController(searchResultsController: nil)
-    private let emptyLabel        = UILabel()
+    private let searchController = UISearchController(searchResultsController: nil)
 
     // MARK: - Lifecycle
 
@@ -41,7 +41,7 @@ final class ListaProductosViewController: UIViewController {
 
     private func setupSegmentedControl() {
         segmentedControl.selectedSegmentIndex = 0
-        segmentedControl.addTarget(self, action: #selector(segmentChanged), for: .valueChanged)
+        // valueChanged wired via @IBAction in storyboard
     }
 
     private func setupSearch() {
@@ -62,21 +62,14 @@ final class ListaProductosViewController: UIViewController {
     }
 
     private func setupEmptyLabel() {
-        emptyLabel.translatesAutoresizingMaskIntoConstraints = false
-        emptyLabel.text          = "No hay productos"
-        emptyLabel.font          = AppFont.body()
-        emptyLabel.textColor     = .appTextSecondary
-        emptyLabel.textAlignment = .center
-        emptyLabel.isHidden      = true
-        view.addSubview(emptyLabel)
+        // emptyLabel is storyboard-placed; apply styling only
+        emptyLabel.font      = AppFont.body()
+        emptyLabel.textColor = .appTextSecondary
+        emptyLabel.isHidden  = true
     }
 
     private func setupConstraints() {
         view.backgroundColor = .appBackground
-        NSLayoutConstraint.activate([
-            emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
     }
 
     // MARK: - Data
@@ -101,7 +94,7 @@ final class ListaProductosViewController: UIViewController {
 
     // MARK: - Actions
 
-    @objc private func segmentChanged() {
+    @IBAction @objc private func segmentChanged(_ sender: UISegmentedControl) {
         activeFilter = segmentedControl.selectedSegmentIndex
         applyFilters()
     }

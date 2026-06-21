@@ -12,15 +12,20 @@ final class DetalleProductoViewController: UIViewController {
     @IBOutlet weak var stockBadge:     UILabel!
     @IBOutlet weak var estadoBadge:    UILabel!
 
-    // MARK: - UI (programmatic)
-    private let codeLabel     = UILabel()
-    private let infoCard      = UIView()
-    private let stockRow      = InfoRow()
-    private let estadoRow     = InfoRow()
-    private let codigoRow     = InfoRow()
-    private let categoriaRow  = InfoRow()
-    private let fechaRow      = InfoRow()
-    private let div1 = UIView(), div2 = UIView(), div3 = UIView(), div4 = UIView()
+    // Storyboard-placed card and separator views
+    @IBOutlet weak var infoCard: UIView!
+    @IBOutlet weak var div1: UIView!
+    @IBOutlet weak var div2: UIView!
+    @IBOutlet weak var div3: UIView!
+    @IBOutlet weak var div4: UIView!
+
+    // MARK: - UI (programmatic — dynamic content)
+    private let codeLabel    = UILabel()
+    private let stockRow     = InfoRow()
+    private let estadoRow    = InfoRow()
+    private let codigoRow    = InfoRow()
+    private let categoriaRow = InfoRow()
+    private let fechaRow     = InfoRow()
 
     // MARK: - Lifecycle
 
@@ -73,17 +78,21 @@ final class DetalleProductoViewController: UIViewController {
         codeLabel.textColor = .appTextSecondary
         contentView.addSubview(codeLabel)
 
-        // Card
-        infoCard.translatesAutoresizingMaskIntoConstraints = false
+        // infoCard comes from storyboard; apply styling
         infoCard.backgroundColor    = .appSurface
         infoCard.layer.cornerRadius = AppLayout.cornerRadius
         infoCard.layer.cornerCurve  = .continuous
-        contentView.addSubview(infoCard)
+
+        // div1-4 come from storyboard; apply separator color
+        let divs: [UIView] = [div1, div2, div3, div4]
+        for div in divs {
+            div.translatesAutoresizingMaskIntoConstraints = false
+            div.backgroundColor = .appSeparator
+        }
 
         let rows: [InfoRow] = [stockRow, estadoRow, codigoRow, categoriaRow, fechaRow]
-        let divs: [UIView]  = [div1, div2, div3, div4]
         for row in rows { row.translatesAutoresizingMaskIntoConstraints = false; infoCard.addSubview(row) }
-        for div in divs { div.translatesAutoresizingMaskIntoConstraints = false; div.backgroundColor = .appSeparator; infoCard.addSubview(div) }
+        // div1-4 are already inside infoCard from storyboard
 
         NSLayoutConstraint.activate([
             codeLabel.topAnchor.constraint(equalTo: nombreLabel.bottomAnchor, constant: 4),
