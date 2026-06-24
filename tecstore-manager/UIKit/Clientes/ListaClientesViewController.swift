@@ -3,8 +3,8 @@ import UIKit
 final class ListaClientesViewController: UIViewController {
 
     // MARK: - Data
-    private var allClientes:      [FBCliente] = []
-    private var filteredClientes: [FBCliente] = []
+    private var allClientes:      [Cliente] = []
+    private var filteredClientes: [Cliente] = []
     private var activeFilter: Int = 0   // 0=Todos 1=Activos 2=Inactivos
 
     // MARK: - IBOutlets
@@ -78,10 +78,8 @@ final class ListaClientesViewController: UIViewController {
     // MARK: - Data
 
     private func loadData() {
-        Task {
-            let clientes = (try? await ClienteService.shared.fetchAll()) ?? []
-            await MainActor.run { self.allClientes = clientes; self.applyFilters() }
-        }
+        allClientes = ClienteService.shared.fetchAll()
+        applyFilters()
     }
 
     private func applyFilters() {
@@ -164,12 +162,13 @@ extension ListaClientesViewController: UITableViewDelegate {
         return UISwipeActionsConfiguration(actions: [delete])
     }
 
-    private func confirmDelete(cliente: FBCliente) {
+    private func confirmDelete(cliente: Cliente) {
         showDestructiveConfirmation(
             title:   "Eliminar cliente",
             message: "¿Eliminar a \"\(cliente.fullName)\"? Esta acción no se puede deshacer."
         ) { [weak self] in
-            Task { try? await ClienteService.shared.delete(cliente); await MainActor.run { self?.loadData() } }
+            ClienteService.shared.delete(cliente)
+            self?.loadData()
         }
     }
 }
@@ -253,7 +252,7 @@ final class ClienteCell: UITableViewCell {
         ])
     }
 
-    func configure(with cliente: FBCliente) {
+    func configure(with cliente: Cliente) {
         let initial        = cliente.firstNames.first.map { String($0) } ?? "?"
         avatarLetter.text  = initial.uppercased()
         nameLabel.text     = cliente.fullName

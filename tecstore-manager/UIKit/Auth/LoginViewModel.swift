@@ -54,25 +54,16 @@ final class LoginViewModel {
         guard validation.isValid else { return }
 
         onLoading?(true)
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                try await AuthService.shared.login(email: email, password: password)
-                await MainActor.run {
-                    self.onLoading?(false)
-                    self.onSuccess?()
-                }
-            } catch let error as ServiceError {
-                await MainActor.run {
-                    self.onLoading?(false)
-                    self.onError?(error.errorDescription ?? "")
-                }
-            } catch {
-                await MainActor.run {
-                    self.onLoading?(false)
-                    self.onError?(error.localizedDescription)
-                }
-            }
+        do {
+            try AuthService.shared.login(email: email, password: password)
+            onLoading?(false)
+            onSuccess?()
+        } catch let error as ServiceError {
+            onLoading?(false)
+            onError?(error.errorDescription ?? "")
+        } catch {
+            onLoading?(false)
+            onError?(error.localizedDescription)
         }
     }
 

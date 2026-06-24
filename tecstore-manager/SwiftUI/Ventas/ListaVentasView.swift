@@ -7,7 +7,7 @@ import SwiftUI
 struct ListaVentasView: View {
 
     @ObservedObject var viewModel: ListaVentasViewModel
-    var onSelectVenta: ((FBVenta) -> Void)? = nil
+    var onSelectVenta: ((Venta) -> Void)? = nil
     var onAddSale:     (() -> Void)?      = nil
 
     var body: some View {
@@ -109,7 +109,7 @@ struct ListaVentasView: View {
 // ─────────────────────────────────────────────
 
 struct VentaRow: View {
-    let venta: FBVenta
+    let venta: Venta
 
     var body: some View {
         HStack(spacing: 12) {
@@ -131,7 +131,7 @@ struct VentaRow: View {
                 Text(venta.clientName)
                     .font(.headline)
                     .lineLimit(1)
-                Text("\(venta.detalles.count) producto(s) · \(venta.saleDate.displayTime)")
+                Text("\(venta.detallesArray.count) producto(s) · \(venta.saleDate.displayTime)")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

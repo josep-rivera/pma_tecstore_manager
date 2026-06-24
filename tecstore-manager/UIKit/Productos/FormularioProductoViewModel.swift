@@ -46,7 +46,7 @@ final class FormularioProductoViewModel {
 
     // MARK: State
 
-    private(set) var product: FBProducto?
+    private(set) var product: Producto?
     private var isEditMode: Bool { product != nil }
 
     private var name: String = ""
@@ -61,7 +61,7 @@ final class FormularioProductoViewModel {
 
     // MARK: Configuration
 
-    func configure(with product: FBProducto?) {
+    func configure(with product: Producto?) {
         self.product = product
 
         if let product {
@@ -146,52 +146,43 @@ final class FormularioProductoViewModel {
         onValidationErrors?(validation)
         guard validation.isValid else { return }
 
-        let priceValue = Double(price) ?? 0
+        let priceValue = Decimal(string: price) ?? 0
         let stockValue = Int(stock) ?? 0
         let status = isActive ? "Activo" : "Inactivo"
         let finalPhotoPath = photoPath ?? product?.productImagePath
         let code = generatedCode
 
         onLoading?(true)
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                if let product = self.product {
-                    try await ProductoService.shared.update(
-                        product,
-                        code: code,
-                        name: self.name,
-                        category: self.category,
-                        price: priceValue,
-                        stock: stockValue,
-                        photoPath: finalPhotoPath,
-                        estado: status
-                    )
-                } else {
-                    try await ProductoService.shared.create(
-                        code: code,
-                        name: self.name,
-                        category: self.category,
-                        price: priceValue,
-                        stock: stockValue,
-                        photoPath: finalPhotoPath
-                    )
-                }
-                await MainActor.run {
-                    self.onLoading?(false)
-                    self.onSuccess?()
-                }
-            } catch let error as ServiceError {
-                await MainActor.run {
-                    self.onLoading?(false)
-                    self.onError?(error.errorDescription ?? "")
-                }
-            } catch {
-                await MainActor.run {
-                    self.onLoading?(false)
-                    self.onError?(error.localizedDescription)
-                }
+        do {
+            if let product = self.product {
+                try ProductoService.shared.update(
+                    product,
+                    code: code,
+                    name: self.name,
+                    category: self.category,
+                    price: priceValue,
+                    stock: stockValue,
+                    photoPath: finalPhotoPath,
+                    estado: status
+                )
+            } else {
+                try ProductoService.shared.create(
+                    code: code,
+                    name: self.name,
+                    category: self.category,
+                    price: priceValue,
+                    stock: stockValue,
+                    photoPath: finalPhotoPath
+                )
             }
+            onLoading?(false)
+            onSuccess?()
+        } catch let error as ServiceError {
+            onLoading?(false)
+            onError?(error.errorDescription ?? "")
+        } catch {
+            onLoading?(false)
+            onError?(error.localizedDescription)
         }
     }
 
@@ -199,18 +190,8 @@ final class FormularioProductoViewModel {
 
     private func refreshCode() {
         guard !isEditMode else { return }
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                let code = try await ProductoService.shared.generateCode(for: self.category)
-                await MainActor.run {
-                    self.generatedCode = code
-                    self.onCodeGenerated?(code)
-                }
-            } catch {
-                // Keep the existing code if generation fails; validation or save will surface errors.
-            }
-        }
+        generatedCode = ProductoService.shared.generateCode(for: self.category)
+        onCodeGenerated?(generatedCode)
     }
 
     private func validate() {

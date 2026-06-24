@@ -182,13 +182,13 @@ override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
 
 ### MVVM — pantallas SwiftUI
 
-El ViewModel expone `@Published` properties; la vista se suscribe automáticamente con `@ObservedObject`. Las llamadas al Service se ejecutan dentro de `Task` en el ViewModel, marcado `@MainActor`.
+El ViewModel expone `@Published` properties; la vista se suscribe automáticamente con `@ObservedObject`. Todos los Services son **síncronos** — no hay `async/await` en los ViewModels (salvo `PhotosPickerItem.loadTransferable` que es una API nativa de Apple sin alternativa sync).
 
 ```
 RegistroVentaView (@ObservedObject viewModel)
     → viewModel.selectedCliente = c          // mutación
     → viewModel.$cartItems (Publisher)       // SwiftUI re-renderiza
-    → VentaService.shared.register(...)      // persiste en CoreData
+    → VentaService.shared.register(...)      // persiste en CoreData (sync throws)
 ```
 
 Ejemplo concreto de `ListaVentasViewModel`:
@@ -196,19 +196,14 @@ Ejemplo concreto de `ListaVentasViewModel`:
 @MainActor
 final class ListaVentasViewModel: ObservableObject {
     @Published var ventas: [Venta] = []
-    @Published var isLoading = false
 
-    func load() {
-        isLoading = true
-        Task {
-            ventas = (try? await VentaService.shared.fetchAll()) ?? []
-            isLoading = false
-        }
+    func loadAll() {
+        ventas = VentaService.shared.fetchAll()
     }
 }
 ```
 
-`ListaVentasView` solo lee `viewModel.ventas` y llama `viewModel.load()` en `.onAppear` — sin lógica de negocio.
+`ListaVentasView` solo lee `viewModel.ventas` y llama `viewModel.loadAll()` en `.onAppear` — sin lógica de negocio.
 
 ### MVVM — pantallas UIKit complejas
 
@@ -373,6 +368,8 @@ Cada dominio tiene su propio Service que usa `PersistenceController` internament
 
 ## Historial de cambios recientes
 
+- **Migración completa de UI a CoreData**: todas las pantallas (Views y ViewControllers) que referenciaban tipos Firebase (`FBProducto`, `FBCliente`, `FBVenta`, `FBUsuario`) fueron adaptadas a los tipos CoreData (`Producto`, `Cliente`, `Venta`, `Usuario`).
+- **Eliminación de async/await en la capa de presentación**: todos los ViewModels y ViewControllers pasaron de patrones `Task { try? await ... }` a llamadas síncronas directas. Los Services CoreData son síncronos.
 - **MVVM completo en SwiftUI**: cada pantalla SwiftUI tiene su ViewModel inyectado desde `UIHostingController`.
 - **MVVM en formularios UIKit**: `FormularioProducto`, `FormularioCliente`, `Login` y `Registro` usan ViewModels con closures.
 - **Nuevas pantallas SwiftUI**: `StockBajoView`, `AcercaDeView`, `DetalleVentaView` y sus ViewModels.

@@ -158,7 +158,7 @@ struct BusquedasView: View {
 // ── Row views ──
 
 struct ProductoBusquedaRow: View {
-    let producto: FBProducto
+    let producto: Producto
     var body: some View {
         HStack(spacing: 12) {
             Group {
@@ -196,7 +196,7 @@ struct ProductoBusquedaRow: View {
 }
 
 struct ClienteBusquedaRow: View {
-    let cliente: FBCliente
+    let cliente: Cliente
     var body: some View {
         HStack(spacing: 12) {
             Circle()
@@ -309,7 +309,7 @@ struct BusquedasFilterSheet: View {
 // ── Detail sheets ──
 
 struct BusquedaProductoSheet: View {
-    let producto: FBProducto
+    let producto: Producto
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
@@ -336,7 +336,7 @@ struct BusquedaProductoSheet: View {
 }
 
 struct BusquedaClienteSheet: View {
-    let cliente: FBCliente
+    let cliente: Cliente
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {

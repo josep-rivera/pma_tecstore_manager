@@ -35,9 +35,9 @@ final class BusquedasViewModel: ObservableObject {
     @Published var productoFilter:   ProductoFilter = .todos
     @Published var categoriaFilter:  String         = "Todos"
     @Published var clienteFilter:    ClienteFilter  = .todos
-    @Published var productos:        [FBProducto]   = []
-    @Published var clientes:         [FBCliente]    = []
-    @Published var ventas:           [FBVenta]      = []
+    @Published var productos:        [Producto]     = []
+    @Published var clientes:         [Cliente]      = []
+    @Published var ventas:           [Venta]        = []
 
     // Venta date + amount filter
     @Published var ventaStartDate:  Date   = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
@@ -45,66 +45,52 @@ final class BusquedasViewModel: ObservableObject {
     @Published var ventaMinAmount:  String = ""
 
     // Detail sheets
-    @Published var selectedProducto: FBProducto? = nil
-    @Published var selectedCliente:  FBCliente?  = nil
-    @Published var selectedVenta:    FBVenta?    = nil
+    @Published var selectedProducto: Producto? = nil
+    @Published var selectedCliente:  Cliente?  = nil
+    @Published var selectedVenta:    Venta?    = nil
 
     func search() {
-        Task { [weak self] in
-            guard let self else { return }
-            let text = searchText.trimmed.lowercased()
-            do {
-                switch selectedSegment {
-                case .productos:
-                    var result = try await ProductoService.shared.fetchAll()
-                    if !text.isEmpty {
-                        result = result.filter {
-                            $0.nombre.lowercased().contains(text) ||
-                            $0.codigo.lowercased().contains(text) ||
-                            $0.categoria.lowercased().contains(text)
-                        }
-                    }
-                    switch productoFilter {
-                    case .conStock:  result = result.filter { $0.hasStock }
-                    case .sinStock:  result = result.filter { !$0.hasStock }
-                    case .todos:     break
-                    }
-                    if self.categoriaFilter != "Todos" {
-                        result = result.filter { $0.categoryValue == self.categoriaFilter }
-                    }
-                    productos = result
-
-                case .clientes:
-                    var result = try await ClienteService.shared.fetchAll()
-                    if !text.isEmpty {
-                        result = result.filter {
-                            $0.nombres.lowercased().contains(text) ||
-                            $0.apellidos.lowercased().contains(text) ||
-                            $0.dni.contains(text) ||
-                            ($0.correo?.lowercased().contains(text) ?? false)
-                        }
-                    }
-                    switch clienteFilter {
-                    case .activos:   result = result.filter { $0.isActive }
-                    case .inactivos: result = result.filter { !$0.isActive }
-                    case .todos:     break
-                    }
-                    clientes = result
-
-                case .ventas:
-                    var result = try await fetchVentas(from: ventaStartDate, to: ventaEndDate, minAmount: ventaMinAmount)
-                    if !text.isEmpty {
-                        result = result.filter {
-                            $0.clienteNombre.lowercased().contains(text) ||
-                            $0.clienteDNI.contains(text) ||
-                            $0.vendedorNombre.lowercased().contains(text)
-                        }
-                    }
-                    ventas = result
+        let text = searchText.trimmed.lowercased()
+        switch selectedSegment {
+        case .productos:
+            var result = ProductoService.shared.fetchAll()
+            if !text.isEmpty {
+                result = result.filter {
+                    $0.productName.lowercased().contains(text) ||
+                    $0.productCode.lowercased().contains(text) ||
+                    $0.categoryValue.lowercased().contains(text)
                 }
-            } catch {
-                // leave previous results intact on error
             }
+            switch productoFilter {
+            case .conStock:  result = result.filter { $0.hasStock }
+            case .sinStock:  result = result.filter { !$0.hasStock }
+            case .todos:     break
+            }
+            if self.categoriaFilter != "Todos" {
+                result = result.filter { $0.categoryValue == self.categoriaFilter }
+            }
+            productos = result
+
+        case .clientes:
+            var result = ClienteService.shared.fetchAll()
+            if !text.isEmpty {
+                result = result.filter {
+                    $0.firstNames.lowercased().contains(text) ||
+                    $0.lastNames.lowercased().contains(text) ||
+                    $0.dniValue.contains(text) ||
+                    ($0.emailValue?.lowercased().contains(text) ?? false)
+                }
+            }
+            switch clienteFilter {
+            case .activos:   result = result.filter { $0.isActive }
+            case .inactivos: result = result.filter { !$0.isActive }
+            case .todos:     break
+            }
+            clientes = result
+
+        case .ventas:
+            ventas = fetchVentas(from: ventaStartDate, to: ventaEndDate,
+                                 minAmount: ventaMinAmount, searchText: text)
         }
     }
 
@@ -129,18 +115,20 @@ final class BusquedasViewModel: ObservableObject {
     }
 
     func applyVentaDateFilter() {
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                ventas = try await fetchVentas(from: ventaStartDate, to: ventaEndDate, minAmount: ventaMinAmount)
-            } catch {
-                // leave previous results intact on error
-            }
-        }
+        ventas = fetchVentas(from: ventaStartDate, to: ventaEndDate,
+                             minAmount: ventaMinAmount, searchText: "")
     }
 
-    private func fetchVentas(from start: Date, to end: Date, minAmount: String) async throws -> [FBVenta] {
-        var result = try await VentaService.shared.fetch(from: start, to: end)
+    private func fetchVentas(from start: Date, to end: Date,
+                             minAmount: String, searchText: String) -> [Venta] {
+        var result = VentaService.shared.fetch(from: start, to: end)
+        if !searchText.isEmpty {
+            result = result.filter {
+                $0.clientName.lowercased().contains(searchText) ||
+                ($0.cliente?.dniValue ?? "").contains(searchText) ||
+                $0.sellerName.lowercased().contains(searchText)
+            }
+        }
         if let min = Double(minAmount), min > 0 {
             result = result.filter { $0.totalDouble >= min }
         }

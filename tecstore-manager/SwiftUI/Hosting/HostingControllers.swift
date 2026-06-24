@@ -88,14 +88,14 @@ final class ListaVentasViewController: UIViewController {
         ventasVM.showDateFilter = true
     }
 
-    private func pushDetalle(_ venta: FBVenta) {
+    private func pushDetalle(_ venta: Venta) {
         performSegue(withIdentifier: "showDetalleVenta", sender: venta)
     }
 
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == "showDetalleVenta",
            let dest = segue.destination as? DetalleVentaViewController,
-           let venta = sender as? FBVenta {
+           let venta = sender as? Venta {
             dest.venta = venta
         }
     }
@@ -170,14 +170,12 @@ final class RegistroVentaViewController: UIViewController {
 }
 
 // MARK: - DetalleVentaViewController
-// DetalleVentaView requires an FBVenta object.
-// Inject via the venta property before or after instantiation.
 
 final class DetalleVentaViewController: UIViewController {
     private var viewModel: DetalleVentaViewModel?
     private var hosting: UIHostingController<AnyView>!
 
-    var venta: FBVenta? {
+    var venta: Venta? {
         didSet {
             if let venta {
                 viewModel = DetalleVentaViewModel(venta: venta)

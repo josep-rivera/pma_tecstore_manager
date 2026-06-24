@@ -50,7 +50,7 @@ final class FormularioClienteViewModel {
 
     // MARK: State
 
-    private(set) var client: FBCliente?
+    private(set) var client: Cliente?
     private var isEditMode: Bool { client != nil }
 
     private var dni: String = ""
@@ -67,7 +67,7 @@ final class FormularioClienteViewModel {
 
     // MARK: Configuration
 
-    func configure(with client: FBCliente?) {
+    func configure(with client: Cliente?) {
         self.client = client
 
         if let client {
@@ -176,58 +176,49 @@ final class FormularioClienteViewModel {
         let addressValue = address.isEmpty ? nil : address
 
         onLoading?(true)
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                let clientID: String
-                if let client = self.client {
-                    try await ClienteService.shared.update(
-                        client,
-                        dni: self.dni,
-                        nombres: self.firstNames,
-                        apellidos: self.lastNames,
-                        telefono: phoneValue,
-                        correo: emailValue,
-                        direccion: addressValue,
-                        estado: status
-                    )
-                    clientID = client.id ?? ""
-                } else {
-                    clientID = try await ClienteService.shared.create(
-                        dni: self.dni,
-                        nombres: self.firstNames,
-                        apellidos: self.lastNames,
-                        telefono: phoneValue,
-                        correo: emailValue,
-                        direccion: addressValue
-                    )
-                }
-
-                if let coordinate = self.coordinate,
-                   coordinate.latitude != 0 || coordinate.longitude != 0 {
-                    try await UbicacionService.shared.saveOrUpdate(
-                        latitude: coordinate.latitude,
-                        longitude: coordinate.longitude,
-                        reference: addressValue,
-                        clienteID: clientID
-                    )
-                }
-
-                await MainActor.run {
-                    self.onLoading?(false)
-                    self.onSuccess?()
-                }
-            } catch let error as ServiceError {
-                await MainActor.run {
-                    self.onLoading?(false)
-                    self.onError?(error.errorDescription ?? "")
-                }
-            } catch {
-                await MainActor.run {
-                    self.onLoading?(false)
-                    self.onError?(error.localizedDescription)
-                }
+        do {
+            let savedClient: Cliente
+            if let client = self.client {
+                try ClienteService.shared.update(
+                    client,
+                    dni: self.dni,
+                    nombres: self.firstNames,
+                    apellidos: self.lastNames,
+                    telefono: phoneValue,
+                    correo: emailValue,
+                    direccion: addressValue,
+                    estado: status
+                )
+                savedClient = client
+            } else {
+                savedClient = try ClienteService.shared.create(
+                    dni: self.dni,
+                    nombres: self.firstNames,
+                    apellidos: self.lastNames,
+                    telefono: phoneValue,
+                    correo: emailValue,
+                    direccion: addressValue
+                )
             }
+
+            if let coordinate = self.coordinate,
+               coordinate.latitude != 0 || coordinate.longitude != 0 {
+                UbicacionService.shared.saveOrUpdate(
+                    latitude: coordinate.latitude,
+                    longitude: coordinate.longitude,
+                    reference: addressValue,
+                    cliente: savedClient
+                )
+            }
+
+            onLoading?(false)
+            onSuccess?()
+        } catch let error as ServiceError {
+            onLoading?(false)
+            onError?(error.errorDescription ?? "")
+        } catch {
+            onLoading?(false)
+            onError?(error.localizedDescription)
         }
     }
 

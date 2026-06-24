@@ -26,10 +26,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Apply saved dark mode preference
         applyStoredAppearance()
 
-        // Seed initial data on first launch (async — runs after window is visible)
-        Task {
-            try? await SeederService.shared.seedIfNeeded()
-        }
+        // Seed initial data on first launch
+        SeederService.shared.seedIfNeeded()
 
         // Listen for logout events posted from SwiftUI screens
         NotificationCenter.default.addObserver(

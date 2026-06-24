@@ -4,7 +4,7 @@ final class FormularioProductoViewController: UIViewController {
 
     // MARK: - Mode
 
-    var producto: FBProducto? {
+    var producto: Producto? {
         didSet { viewModel.configure(with: producto) }
     }
     var onSave: (() -> Void)?

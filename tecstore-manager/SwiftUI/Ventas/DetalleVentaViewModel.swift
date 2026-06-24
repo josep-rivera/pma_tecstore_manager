@@ -9,9 +9,9 @@ import Combine
 @MainActor
 final class DetalleVentaViewModel: ObservableObject {
 
-    let venta: FBVenta
+    let venta: Venta
 
-    init(venta: FBVenta) {
+    init(venta: Venta) {
         self.venta = venta
     }
 

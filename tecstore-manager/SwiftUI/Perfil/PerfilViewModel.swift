@@ -9,7 +9,7 @@ import PhotosUI
 @MainActor
 final class PerfilViewModel: ObservableObject {
 
-    @Published var user:           FBUsuario? = nil
+    @Published var user:           Usuario? = nil
     @Published var isDarkMode:     Bool       = UserDefaults.standard.bool(forKey: UserDefaultsKeys.darkModeEnabled)
     @Published var profileImage:   UIImage?   = nil
 
@@ -29,16 +29,9 @@ final class PerfilViewModel: ObservableObject {
     @Published var errorMessage:     String = ""
 
     func loadUser() {
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                user = try await AuthService.shared.currentUsuario()
-                if let path = user?.profileImagePath {
-                    profileImage = UIImage.fromDocuments(named: path)
-                }
-            } catch {
-                // user stays nil
-            }
+        user = AuthService.shared.currentUser
+        if let path = user?.profileImagePath {
+            profileImage = UIImage.fromDocuments(named: path)
         }
     }
 
@@ -66,23 +59,15 @@ final class PerfilViewModel: ObservableObject {
 
     func saveProfilePhoto(_ image: UIImage) {
         let resized  = image.resized(maxDimension: AppConstants.profileImageMaxDimension)
-        let fileName = "profile_\(user?.id ?? "unknown").jpg"
+        let fileName = "profile_\(user?.id.uuidString ?? "unknown").jpg"
         guard let savedPath = resized.saveToDocuments(named: fileName) else {
             errorMessage = "No se pudo guardar la foto en el dispositivo."
             showErrorAlert = true
             return
         }
         profileImage = resized
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                try await AuthService.shared.updateProfile(fullName: user?.fullName ?? "", photoPath: savedPath)
-                user = try await AuthService.shared.currentUsuario()
-            } catch {
-                errorMessage = "No se pudo sincronizar la foto de perfil."
-                showErrorAlert = true
-            }
-        }
+        AuthService.shared.updateProfile(fullName: user?.fullName ?? "", photoPath: savedPath)
+        user = AuthService.shared.currentUser
     }
 
     func changePassword() {
@@ -95,19 +80,16 @@ final class PerfilViewModel: ObservableObject {
             pwdError = "Las contraseñas no coinciden."
             return
         }
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                try await AuthService.shared.changePassword(current: currentPwd, new: newPwd)
-                pwdSuccess = true
-                currentPwd = ""
-                newPwd     = ""
-                confirmPwd = ""
-            } catch let error as ServiceError {
-                pwdError = error.errorDescription ?? "Error al cambiar contraseña."
-            } catch {
-                pwdError = error.localizedDescription
-            }
+        do {
+            try AuthService.shared.changePassword(current: currentPwd, new: newPwd)
+            pwdSuccess = true
+            currentPwd = ""
+            newPwd     = ""
+            confirmPwd = ""
+        } catch let error as ServiceError {
+            pwdError = error.errorDescription ?? "Error al cambiar contraseña."
+        } catch {
+            pwdError = error.localizedDescription
         }
     }
 

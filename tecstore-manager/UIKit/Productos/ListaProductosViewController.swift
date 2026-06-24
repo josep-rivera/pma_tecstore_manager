@@ -3,8 +3,8 @@ import UIKit
 final class ListaProductosViewController: UIViewController {
 
     // MARK: - Data
-    private var allProductos:      [FBProducto] = []
-    private var filteredProductos: [FBProducto] = []
+    private var allProductos:      [Producto] = []
+    private var filteredProductos: [Producto] = []
     private var activeFilter: Int = 0   // 0=Todos 1=Con stock 2=Sin stock
 
     // MARK: - IBOutlets
@@ -76,10 +76,8 @@ final class ListaProductosViewController: UIViewController {
     // MARK: - Data
 
     private func loadData() {
-        Task {
-            let productos = (try? await ProductoService.shared.fetchAll()) ?? []
-            await MainActor.run { self.allProductos = productos; self.applyFilters() }
-        }
+        allProductos = ProductoService.shared.fetchAll()
+        applyFilters()
     }
 
     private func applyFilters() {
@@ -161,12 +159,13 @@ extension ListaProductosViewController: UITableViewDelegate {
         return UISwipeActionsConfiguration(actions: [delete])
     }
 
-    private func confirmDelete(product: FBProducto, at indexPath: IndexPath) {
+    private func confirmDelete(product: Producto, at indexPath: IndexPath) {
         showDestructiveConfirmation(
             title:   "Eliminar producto",
             message: "¿Eliminar \"\(product.productName)\"? Esta acción no se puede deshacer."
         ) { [weak self] in
-            Task { try? await ProductoService.shared.delete(product); await MainActor.run { self?.loadData() } }
+            ProductoService.shared.delete(product)
+            self?.loadData()
         }
     }
 }
@@ -254,7 +253,7 @@ final class ProductoCell: UITableViewCell {
         ])
     }
 
-    func configure(with producto: FBProducto) {
+    func configure(with producto: Producto) {
         nombreLabel.text     = producto.productName
         codigoLabel.text     = "\(producto.productCode) · \(producto.categoryValue)"
         precioLabel.text     = producto.priceDouble.asCurrency

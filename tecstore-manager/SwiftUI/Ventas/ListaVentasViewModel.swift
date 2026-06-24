@@ -8,19 +8,16 @@ import Combine
 @MainActor
 final class ListaVentasViewModel: ObservableObject {
 
-    @Published var ventas:          [FBVenta] = []
-    @Published var allVentas:       [FBVenta] = []
+    @Published var ventas:          [Venta] = []
+    @Published var allVentas:       [Venta] = []
     @Published var isDateFiltering: Bool    = false
     @Published var showDateFilter:  Bool    = false
     @Published var startDate: Date = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
     @Published var endDate:   Date = Date()
 
     func loadAll() {
-        Task { [weak self] in
-            guard let self else { return }
-            let all = (try? await VentaService.shared.fetchAll()) ?? []
-            allVentas = all; ventas = all
-        }
+        let all = VentaService.shared.fetchAll()
+        allVentas = all; ventas = all
     }
 
     func applySearch(_ text: String) {
@@ -31,11 +28,8 @@ final class ListaVentasViewModel: ObservableObject {
     }
 
     func applyDateFilter() {
-        Task { [weak self] in
-            guard let self else { return }
-            let all = (try? await VentaService.shared.fetch(from: startDate, to: endDate)) ?? []
-            allVentas = all; ventas = all
-        }
+        let all = VentaService.shared.fetch(from: startDate, to: endDate)
+        allVentas = all; ventas = all
     }
 
     func clearFilter() {

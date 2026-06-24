@@ -6,7 +6,7 @@ final class FormularioClienteViewController: UIViewController {
 
     // MARK: - Mode
 
-    var cliente: FBCliente? {
+    var cliente: Cliente? {
         didSet { viewModel.configure(with: cliente) }
     }
     var onSave: (() -> Void)?

@@ -57,9 +57,9 @@ struct DetalleVentaView: View {
     // ── Productos ──
     private var productosCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            cardHeader("Productos (\(viewModel.venta.detalles.count))")
+            cardHeader("Productos (\(viewModel.venta.detallesArray.count))")
             Divider()
-            ForEach(Array(viewModel.venta.detalles.enumerated()), id: \.offset) { idx, detalle in
+            ForEach(Array(viewModel.venta.detallesArray.enumerated()), id: \.offset) { idx, detalle in
                 if idx > 0 {
                     Divider().padding(.leading, CGFloat(AppLayout.paddingLarge))
                 }

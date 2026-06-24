@@ -9,11 +9,11 @@ import Combine
 final class RegistroVentaViewModel: ObservableObject {
 
     // Data
-    @Published var activeClientes:  [FBCliente]  = []
-    @Published var activeProductos: [FBProducto] = []
+    @Published var activeClientes:  [Cliente]  = []
+    @Published var activeProductos: [Producto] = []
 
     // Form state
-    @Published var selectedCliente: FBCliente?  = nil
+    @Published var selectedCliente: Cliente?   = nil
     @Published var cartItems:       [VentaItem] = []
     @Published var searchProducto:  String      = ""
 
@@ -25,7 +25,7 @@ final class RegistroVentaViewModel: ObservableObject {
 
     // ── Derived ──
 
-    var filteredProductos: [FBProducto] {
+    var filteredProductos: [Producto] {
         let text = searchProducto.trimmed
         let base = activeProductos.filter { $0.hasStock }
         guard text.isNotBlank else { return base }
@@ -37,25 +37,20 @@ final class RegistroVentaViewModel: ObservableObject {
 
     var canConfirm: Bool { selectedCliente != nil && !cartItems.isEmpty }
 
-    var totals: (subtotal: Double, igv: Double, total: Double) {
+    var totals: (subtotal: Decimal, igv: Decimal, total: Decimal) {
         VentaService.shared.calculateTotals(for: cartItems)
     }
 
     // ── Load ──
 
     func loadData() {
-        Task { [weak self] in
-            guard let self else { return }
-            async let clientes  = ClienteService.shared.fetchAll(onlyActive: true)
-            async let productos = ProductoService.shared.fetchAll(onlyActive: true)
-            activeClientes  = (try? await clientes)  ?? []
-            activeProductos = (try? await productos) ?? []
-        }
+        activeClientes  = ClienteService.shared.fetchAll(onlyActive: true)
+        activeProductos = ProductoService.shared.fetchAll(onlyActive: true)
     }
 
     // ── Cart Operations ──
 
-    func addToCart(_ producto: FBProducto) {
+    func addToCart(_ producto: Producto) {
         if let idx = cartItems.firstIndex(where: { $0.producto.id == producto.id }) {
             guard cartItems[idx].cantidad < producto.stockInt else { return }
             cartItems[idx].cantidad += 1
@@ -84,21 +79,18 @@ final class RegistroVentaViewModel: ObservableObject {
     // ── Confirm ──
 
     func confirmSale() {
-        guard let cliente = selectedCliente else { return }
+        guard let cliente = selectedCliente,
+              let usuario = AuthService.shared.currentUser else { return }
         let items = cartItems
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                guard let usuario = try await AuthService.shared.currentUsuario() else { return }
-                try await VentaService.shared.register(cliente: cliente, usuario: usuario, items: items)
-                saleCompleted = true
-            } catch let error as ServiceError {
-                errorMessage = error.errorDescription ?? "Error al registrar la venta."
-                showError    = true
-            } catch {
-                errorMessage = error.localizedDescription
-                showError    = true
-            }
+        do {
+            try VentaService.shared.register(cliente: cliente, usuario: usuario, items: items)
+            saleCompleted = true
+        } catch let error as ServiceError {
+            errorMessage = error.errorDescription ?? "Error al registrar la venta."
+            showError    = true
+        } catch {
+            errorMessage = error.localizedDescription
+            showError    = true
         }
     }
 }

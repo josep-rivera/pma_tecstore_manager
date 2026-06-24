@@ -3,7 +3,7 @@ import UIKit
 final class DetalleProductoViewController: UIViewController {
 
     // MARK: - Data
-    var producto: FBProducto?
+    var producto: Producto?
 
     // MARK: - IBOutlets
     @IBOutlet weak var photoImageView: UIImageView!
@@ -43,7 +43,7 @@ final class DetalleProductoViewController: UIViewController {
         navigationController?.setNavigationBarHidden(false, animated: animated)
         populate()
         guard let producto else { return }
-        Task { if let updated = try? await ProductoService.shared.fetch(byID: producto.id ?? "") { await MainActor.run { self.producto = updated; self.populate() } } }
+        if let updated = ProductoService.shared.fetch(byID: producto.id) { self.producto = updated; self.populate() }
     }
 
     // MARK: - Setup

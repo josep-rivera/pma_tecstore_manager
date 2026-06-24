@@ -19,7 +19,7 @@ struct RegistroVentaView: View {
                 Picker("Cliente", selection: $viewModel.selectedCliente) {
                     Text("Elige un cliente activo")
                         .foregroundColor(.secondary)
-                        .tag(nil as FBCliente?)
+                        .tag(nil as Cliente?)
                     ForEach(viewModel.activeClientes) { c in
                         Text(c.fullName).tag(Optional(c))
                     }
@@ -254,7 +254,7 @@ struct ConfirmacionVentaSheet: View {
 
 /// Row for product selection in RegistroVentaView
 struct ProductPickerRow: View {
-    let producto:  FBProducto
+    let producto:  Producto
     let onAdd:     () -> Void
 
     var body: some View {
