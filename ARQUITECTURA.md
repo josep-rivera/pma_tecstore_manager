@@ -157,25 +157,27 @@ Disparados desde código con `performSegue(withIdentifier:)`. Necesario porque e
 
 ---
 
-## 6. Arquitectura MVC y MVVM
+## 6. Arquitectura MVVM
 
-### MVC — pantallas UIKit simples
+El proyecto aplica MVVM de forma consistente en todas las pantallas. El patrón varía levemente según el framework (UIKit vs SwiftUI), pero el rol de cada capa es el mismo.
 
-Las pantallas de lista/detalle simples (`ListaProductos`, `ListaClientes`, `DetalleProducto`, `DetalleCliente`) usan MVC: el ViewController recibe eventos de la UI, llama al Service y actualiza la vista.
+### MVVM — pantallas UIKit
+
+El ViewModel expone closures (outputs) que el ViewController implementa para actualizar la UI. El ViewController solo llama métodos del ViewModel (inputs) y nunca accede a los Services directamente.
 
 ```
-UIButton (tap) → ListaProductosViewController.handleRefresh()
-    → ProductoService.shared.fetchAll()   ← consulta CoreData
-    → tableView.reloadData()
+viewWillAppear → viewModel.loadData()
+    → ClienteService.shared.fetchAll()  (dentro del ViewModel, CoreData síncrono)
+    → viewModel.onReload?()             (output al VC)
+    → tableView.reloadData()            (el VC actualiza la UI)
 ```
 
 Paso de datos entre VCs mediante `prepare(for:sender:)`:
 ```swift
-// ListaClientesViewController.swift
 override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-    if let dest = segue.destination as? DetalleClienteViewController,
-       let cliente = sender as? Cliente {
-        dest.cliente = cliente   // el VC destino recibe el NSManagedObject directamente
+    if let dest = segue.destination as? DetalleClienteViewController {
+        guard let ip = tableView.indexPathForSelectedRow else { return }
+        dest.cliente = viewModel.filteredClientes[ip.row]
     }
 }
 ```
@@ -230,22 +232,24 @@ private func bindViewModel() {
 
 ### ViewModels existentes
 
-| ViewModel | Vista/VC |
-|---|---|
-| `InicioViewModel` | `InicioView` |
-| `StockBajoViewModel` | `StockBajoView` |
-| `ListaVentasViewModel` | `ListaVentasView` |
-| `RegistroVentaViewModel` | `RegistroVentaView` |
-| `DetalleVentaViewModel` | `DetalleVentaView` |
-| `PerfilViewModel` | `PerfilView` (Configuración) |
-| `ReportesViewModel` | `ReportesView` |
-| `BusquedasViewModel` | `BusquedasView` |
-| `FormularioProductoViewModel` | `FormularioProductoViewController` |
-| `ProductoImageService` | helper de imagen del formulario producto |
-| `FormularioClienteViewModel` | `FormularioClienteViewController` |
-| `ClienteLocationService` | helper de geocoding del formulario cliente |
-| `LoginViewModel` | `LoginViewController` |
-| `RegistroViewModel` | `RegistroViewController` |
+| ViewModel | Vista/VC | Framework |
+|---|---|---|
+| `ListaClientesViewModel` | `ListaClientesViewController` | UIKit |
+| `DetalleClienteViewModel` | `DetalleClienteViewController` | UIKit |
+| `FormularioClienteViewModel` | `FormularioClienteViewController` | UIKit |
+| `ListaProductosViewModel` | `ListaProductosViewController` | UIKit |
+| `DetalleProductoViewModel` | `DetalleProductoViewController` | UIKit |
+| `FormularioProductoViewModel` | `FormularioProductoViewController` | UIKit |
+| `LoginViewModel` | `LoginViewController` | UIKit |
+| `RegistroViewModel` | `RegistroViewController` | UIKit |
+| `InicioViewModel` | `InicioView` | SwiftUI |
+| `StockBajoViewModel` | `StockBajoView` | SwiftUI |
+| `ListaVentasViewModel` | `ListaVentasView` | SwiftUI |
+| `RegistroVentaViewModel` | `RegistroVentaView` | SwiftUI |
+| `DetalleVentaViewModel` | `DetalleVentaView` | SwiftUI |
+| `PerfilViewModel` | `PerfilView` | SwiftUI |
+| `ReportesViewModel` | `ReportesView` | SwiftUI |
+| `BusquedasViewModel` | `BusquedasView` | SwiftUI |
 
 ---
 
