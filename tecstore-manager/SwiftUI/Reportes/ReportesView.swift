@@ -1,31 +1,5 @@
 import SwiftUI
 import Charts
-import Combine
-
-// ─────────────────────────────────────────────
-// MARK: - ReportesViewModel
-// ─────────────────────────────────────────────
-
-@MainActor
-final class ReportesViewModel: ObservableObject {
-
-    @Published var report:          ReporteData? = nil
-    @Published var byCategory:      [(category: String, total: Double)] = []
-    @Published var topProductos:    [(name: String, revenue: Double)]   = []
-    @Published var weeklyTrend:     [(date: Date, count: Int)]          = []
-    @Published var isLoading:       Bool = false
-
-    func loadReport() {
-        isLoading = true
-        Task {
-            self.report       = ReporteService.shared.generateReport()
-            self.byCategory   = ReporteService.shared.revenueByCategory()
-            self.topProductos = ReporteService.shared.topProductosByRevenue(limit: 3)
-            self.weeklyTrend  = ReporteService.shared.salesByDay(lastDays: 14)
-            self.isLoading    = false
-        }
-    }
-}
 
 // ─────────────────────────────────────────────
 // MARK: - ReportesView
@@ -33,7 +7,7 @@ final class ReportesViewModel: ObservableObject {
 
 struct ReportesView: View {
 
-    @StateObject private var viewModel = ReportesViewModel()
+    @ObservedObject var viewModel: ReportesViewModel
 
     var body: some View {
         Group {
@@ -165,7 +139,7 @@ struct TrendChart: View {
             AxisMarks(values: .automatic(desiredCount: 3))
         }
         .padding(CGFloat(AppLayout.padding))
-        .background(Color(UIColor.appBackground))
+        .background(Color(UIColor.appSurface))
         .cornerRadius(CGFloat(AppLayout.cornerRadius))
         .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
     }
@@ -207,7 +181,7 @@ struct CategoryRevenueChart: View {
             }
         }
         .padding(CGFloat(AppLayout.padding))
-        .background(Color(UIColor.appBackground))
+        .background(Color(UIColor.appSurface))
         .cornerRadius(CGFloat(AppLayout.cornerRadius))
         .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
     }
@@ -248,7 +222,7 @@ struct TopProductosCard: View {
                 }
             }
         }
-        .background(Color(UIColor.appBackground))
+        .background(Color(UIColor.appSurface))
         .cornerRadius(CGFloat(AppLayout.cornerRadius))
         .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
     }
@@ -302,7 +276,7 @@ struct ReporteCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(CGFloat(AppLayout.padding))
-        .background(Color(UIColor.appBackground))
+        .background(Color(UIColor.appSurface))
         .cornerRadius(CGFloat(AppLayout.cornerRadius))
         .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
     }
@@ -341,7 +315,7 @@ struct ReporteAlertCard: View {
             Spacer()
         }
         .padding(CGFloat(AppLayout.padding))
-        .background(Color(UIColor.appBackground))
+        .background(Color(UIColor.appSurface))
         .cornerRadius(CGFloat(AppLayout.cornerRadius))
         .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
     }

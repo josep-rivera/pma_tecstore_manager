@@ -14,13 +14,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     ) {
         guard let windowScene = scene as? UIWindowScene else { return }
 
-        // Seed initial data on first launch
-        SeederService.shared.seedIfNeeded()
-
         // Configure global UIKit appearance
         AppStyle.configureGlobalAppearance()
 
-        // Build window
+        // Build window — hasActiveSession is sync (Firebase Auth local cache)
         let window = UIWindow(windowScene: windowScene)
         self.window = window
         window.rootViewController = makeRootViewController()
@@ -28,6 +25,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         // Apply saved dark mode preference
         applyStoredAppearance()
+
+        // Seed initial data on first launch (async — runs after window is visible)
+        Task {
+            try? await SeederService.shared.seedIfNeeded()
+        }
 
         // Listen for logout events posted from SwiftUI screens
         NotificationCenter.default.addObserver(
@@ -40,6 +42,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     // MARK: - Root View Controller
 
+    /// Auth root replacement is a justified exception to the storyboard-segue rule.
+    /// Login/logout swap the entire window root before the Main storyboard flow is active,
+    /// so a manual root change is safer than trying to route them through segues.
     private func makeRootViewController() -> UIViewController {
         let sb = UIStoryboard(name: "Main", bundle: nil)
         if AuthService.shared.hasActiveSession {
@@ -54,7 +59,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     // MARK: - Transitions
 
-    /// Replace root with MenuViewController (after login or register)
+    /// Replace root with MenuViewController (after login or register).
+    /// Intentionally code-driven: the auth flow is outside the active storyboard hierarchy.
     func switchToMenu() {
         guard let window else { return }
         let sb = UIStoryboard(name: "Main", bundle: nil)
@@ -64,7 +70,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
     }
 
-    /// Replace root with auth flow (after logout)
+    /// Replace root with auth flow (after logout).
+    /// Intentionally code-driven: the auth flow is outside the active storyboard hierarchy.
     func switchToAuth() {
         guard let window else { return }
         let sb = UIStoryboard(name: "Main", bundle: nil)
@@ -109,6 +116,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 extension Notification.Name {
     static let userDidLogout    = Notification.Name("userDidLogout")
+    static let darkModeChanged  = Notification.Name("darkModeChanged")
     static let salesDataChanged = Notification.Name("salesDataChanged")
 }
 
@@ -116,5 +124,5 @@ extension Notification.Name {
 
 enum UserDefaultsKeys {
     static let darkModeEnabled  = "darkModeEnabled"
-    static let activeUserID     = "activeUserID"
+    static let activeUserID     = "activeUserID"   // kept for migration safety; no longer written
 }

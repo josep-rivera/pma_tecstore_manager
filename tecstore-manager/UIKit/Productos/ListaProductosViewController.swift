@@ -3,8 +3,8 @@ import UIKit
 final class ListaProductosViewController: UIViewController {
 
     // MARK: - Data
-    private var allProductos:      [Producto] = []
-    private var filteredProductos: [Producto] = []
+    private var allProductos:      [FBProducto] = []
+    private var filteredProductos: [FBProducto] = []
     private var activeFilter: Int = 0   // 0=Todos 1=Con stock 2=Sin stock
 
     // MARK: - IBOutlets
@@ -41,7 +41,7 @@ final class ListaProductosViewController: UIViewController {
 
     private func setupSegmentedControl() {
         segmentedControl.selectedSegmentIndex = 0
-        // valueChanged wired via @IBAction in storyboard
+        // segmentChanged wired via @IBAction in storyboard
     }
 
     private func setupSearch() {
@@ -58,14 +58,15 @@ final class ListaProductosViewController: UIViewController {
         tableView.delegate           = self
         tableView.rowHeight          = UITableView.automaticDimension
         tableView.estimatedRowHeight = AppLayout.cellHeight
+        tableView.backgroundColor    = .appBackground
         tableView.separatorInset     = UIEdgeInsets(top: 0, left: AppLayout.padding, bottom: 0, right: 0)
     }
 
     private func setupEmptyLabel() {
         // emptyLabel is storyboard-placed; apply styling only
-        emptyLabel.font      = AppFont.body()
-        emptyLabel.textColor = .appTextSecondary
-        emptyLabel.isHidden  = true
+        emptyLabel.font          = AppFont.body()
+        emptyLabel.textColor     = .appTextSecondary
+        emptyLabel.isHidden      = true
     }
 
     private func setupConstraints() {
@@ -75,13 +76,19 @@ final class ListaProductosViewController: UIViewController {
     // MARK: - Data
 
     private func loadData() {
-        allProductos = ProductoService.shared.fetchAll()
-        applyFilters()
+        Task {
+            let productos = (try? await ProductoService.shared.fetchAll()) ?? []
+            await MainActor.run { self.allProductos = productos; self.applyFilters() }
+        }
     }
 
     private func applyFilters() {
         let text = searchController.searchBar.text?.trimmed ?? ""
-        var result = text.isEmpty ? allProductos : ProductoService.shared.search(text: text)
+        var result = text.isEmpty ? allProductos : allProductos.filter {
+            $0.productName.localizedCaseInsensitiveContains(text) ||
+            $0.productCode.localizedCaseInsensitiveContains(text) ||
+            $0.categoryValue.localizedCaseInsensitiveContains(text)
+        }
         switch activeFilter {
         case 1: result = result.filter {  $0.hasStock }
         case 2: result = result.filter { !$0.hasStock }
@@ -154,13 +161,12 @@ extension ListaProductosViewController: UITableViewDelegate {
         return UISwipeActionsConfiguration(actions: [delete])
     }
 
-    private func confirmDelete(product: Producto, at indexPath: IndexPath) {
+    private func confirmDelete(product: FBProducto, at indexPath: IndexPath) {
         showDestructiveConfirmation(
             title:   "Eliminar producto",
             message: "¿Eliminar \"\(product.productName)\"? Esta acción no se puede deshacer."
         ) { [weak self] in
-            ProductoService.shared.delete(product)
-            self?.loadData()
+            Task { try? await ProductoService.shared.delete(product); await MainActor.run { self?.loadData() } }
         }
     }
 }
@@ -187,7 +193,8 @@ final class ProductoCell: UITableViewCell {
     required init?(coder: NSCoder) { super.init(coder: coder); buildUI() }
 
     private func buildUI() {
-        backgroundColor = .appBackground
+        backgroundColor = .appSurface
+        contentView.backgroundColor = .appSurface
 
         thumbnailView.translatesAutoresizingMaskIntoConstraints = false
         thumbnailView.contentMode         = .scaleAspectFill
@@ -247,7 +254,7 @@ final class ProductoCell: UITableViewCell {
         ])
     }
 
-    func configure(with producto: Producto) {
+    func configure(with producto: FBProducto) {
         nombreLabel.text     = producto.productName
         codigoLabel.text     = "\(producto.productCode) · \(producto.categoryValue)"
         precioLabel.text     = producto.priceDouble.asCurrency

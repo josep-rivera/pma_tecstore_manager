@@ -1,17 +1,53 @@
 # TecStore Manager — Documentación Técnica
 
 ## Índice
-1. [Escenas en el Storyboard](#1-escenas-en-el-storyboard)
-2. [Navegación](#2-navegación)
-3. [Componentes UIKit por pantalla](#3-componentes-uikit-por-pantalla)
-4. [Componentes SwiftUI por pantalla](#4-componentes-swiftui-por-pantalla)
-5. [Arquitectura MVC y MVVM](#5-arquitectura-mvc-y-mvvm)
-6. [Flujo de la aplicación](#6-flujo-de-la-aplicación)
-7. [UserDefaults y Core Data](#7-userdefaults-y-core-data)
+1. [Cómo está organizado el proyecto](#1-cómo-está-organizado-el-proyecto)
+2. [Escenas en el Storyboard](#2-escenas-en-el-storyboard)
+3. [Navegación](#3-navegación)
+4. [Componentes UIKit por pantalla](#4-componentes-uikit-por-pantalla)
+5. [Componentes SwiftUI por pantalla](#5-componentes-swiftui-por-pantalla)
+6. [Arquitectura MVC y MVVM](#6-arquitectura-mvc-y-mvvm)
+7. [Cómo leer el código](#7-cómo-leer-el-código)
+8. [Flujo de la aplicación](#8-flujo-de-la-aplicación)
+9. [Persistencia: UserDefaults y Core Data](#9-persistencia-userdefaults-y-core-data)
 
 ---
 
-## 1. Escenas en el Storyboard
+## 1. Cómo está organizado el proyecto
+
+```
+tecstore-manager/
+├── App/                    AppDelegate, SceneDelegate, lifecycle
+├── Assets.xcassets/        Imágenes, iconos y colores semánticos
+├── Base.lproj/             Main.storyboard + LaunchScreen
+├── Core/                   Extensiones, Theme, PasswordHasher, utilidades compartidas
+├── CoreData/               NSManagedObject subclasses, PersistenceController, .xcdatamodeld
+├── Services/               Toda la lógica de negocio, repositorios CoreData y helpers
+├── SwiftUI/                Pantallas en SwiftUI (una carpeta por pantalla)
+│   ├── Busquedas/
+│   ├── Hosting/
+│   ├── Inicio/
+│   ├── Perfil/
+│   ├── Reportes/
+│   └── Ventas/
+└── UIKit/                  ViewControllers en UIKit (una carpeta por feature)
+    ├── Auth/
+    ├── Clientes/
+    ├── Menu/
+    └── Productos/
+```
+
+### Principios que seguimos
+
+- **Una carpeta por pantalla/feature**. Dentro de `SwiftUI/` y `UIKit/` cada pantalla tiene su propia carpeta.
+- **Un archivo por responsabilidad**. Nunca mezclamos View + ViewModel en el mismo archivo.
+- **Services como repositorios**. Toda lógica de persistencia, imágenes, geocoding, etc. vive en `Services/`, no dentro de los VCs ni ViewModels.
+- **Auto Layout 100 % en storyboard** para UIKit. Los VCs no crean constraints por código.
+- **Navegación principal por segues manuales** en `Main.storyboard`.
+
+---
+
+## 2. Escenas en el Storyboard
 
 `Main.storyboard` contiene **26 escenas**. Las de tipo `UIHostingController` envuelven vistas SwiftUI y no tienen subvistas definidas en el storyboard — su contenido se configura en código.
 
@@ -23,12 +59,12 @@
 | **Registro** | `RegistroViewController` | ScrollView → logo, título, subtítulo, campos nombre/correo/contraseña/confirmar con error labels, botones registrarse/login. Constraints completos. |
 | Menu View Controller | `MenuViewController` (UITabBarController) | 5 relationship segues a los 5 NavigationControllers. |
 | Navigation Controller (×5) | `UINavigationController` | Uno por cada tab: Inicio, Productos, Clientes, Ventas, Configuración. |
-| **Lista Productos** | `ListaProductosViewController` | TableView + UISegmentedControl (Todo/Activos/Stock bajo) + empty label. |
-| **Formulario Producto** | `FormularioProductoViewController` | ScrollView → UIImageView foto, campos nombre/categoría/precio/stock, UISwitch estado. Error labels y vistas de estado construidas en código. |
-| **Detalle Producto** | `DetalleProductoViewController` | UIImageView foto, nombre label, card view con separadores. Filas de info (código, stock, estado, categoría, fecha) construidas en código. |
+| **Lista Productos** | `ListaProductosViewController` | TableView + UISegmentedControl (Todo/Con stock/Sin stock) + empty label. |
+| **Formulario Producto** | `FormularioProductoViewController` | ScrollView → UIImageView foto, campos nombre/categoría/precio/stock, UISwitch estado. Constraints completos en storyboard. |
+| **Detalle Producto** | `DetalleProductoViewController` | UIImageView foto, nombre label, card view con InfoRows. Constraints completos en storyboard. |
 | **Lista Clientes** | `ListaClientesViewController` | TableView + empty label. |
-| **Formulario Cliente** | `FormularioClienteViewController` | ScrollView → campos DNI/nombres/apellidos/teléfono/correo/dirección, UISwitch estado, MKMapView. Error labels construidas en código. |
-| **Detalle Cliente** | `DetalleClienteViewController` | Vistas de contacto y MKMapView construidas en código; card container en storyboard. |
+| **Formulario Cliente** | `FormularioClienteViewController` | ScrollView → campos DNI/nombres/apellidos/teléfono/correo/dirección, UISwitch estado, MKMapView. Constraints completos en storyboard. |
+| **Detalle Cliente** | `DetalleClienteViewController` | Card de contacto + MKMapView. Constraints completos en storyboard. |
 | **Inicio** *(SwiftUI)* | `InicioViewController` (UIHostingController) | Solo contenedor vacío. Contenido: `InicioView`. |
 | **Lista Ventas** *(SwiftUI)* | `ListaVentasViewController` (UIHostingController) | Solo contenedor vacío. Contenido: `ListaVentasView`. |
 | **Configuración** *(SwiftUI)* | `PerfilViewController` (UIHostingController) | Solo contenedor vacío. Contenido: `PerfilView`. |
@@ -41,7 +77,7 @@
 
 ---
 
-## 2. Navegación
+## 3. Navegación
 
 ### Storyboard — action segues (sin identifier)
 Disparados directamente por botones o celdas en IB:
@@ -61,15 +97,15 @@ Disparados directamente por botones o celdas en IB:
 ### Storyboard — segues con identifier
 Disparados desde código con `performSegue(withIdentifier:)`. Necesario porque el disparador está dentro de una vista SwiftUI que no puede conectarse directamente en IB:
 
-| Identifier | Origen | Destino |
-|---|---|---|
-| `showAcercaDe` | PerfilViewController | AcercaDeViewController |
-| `showBusquedas` | InicioViewController | BusquedasViewController |
-| `showReportes` | InicioViewController | ReportesViewController |
-| `showStockBajo` | InicioViewController | StockBajoViewController |
-| `showNuevaVentaModal` | InicioViewController | RegistroVentaViewController |
-| `showRegistroVenta` | ListaVentasViewController | RegistroVentaViewController |
-| `showDetalleVenta` | ListaVentasViewController | DetalleVentaViewController |
+| Identifier | Origen | Destino | Tipo |
+|---|---|---|---|
+| `showAcercaDe` | PerfilViewController | AcercaDeViewController | show |
+| `showBusquedas` | InicioViewController | BusquedasViewController | show |
+| `showReportes` | InicioViewController | ReportesViewController | show |
+| `showStockBajo` | InicioViewController | StockBajoViewController | show |
+| `showNuevaVentaModal` | InicioViewController | RegistroVentaViewController | **modal** |
+| `showRegistroVenta` | ListaVentasViewController | RegistroVentaViewController | show |
+| `showDetalleVenta` | ListaVentasViewController | DetalleVentaViewController | show |
 
 ### Programático (necesario — sin alternativa en storyboard)
 | Acción | Dónde | Por qué |
@@ -82,7 +118,7 @@ Disparados desde código con `performSegue(withIdentifier:)`. Necesario porque e
 
 ---
 
-## 3. Componentes UIKit por pantalla
+## 4. Componentes UIKit por pantalla
 
 | Componente | Pantalla(s) |
 |---|---|
@@ -90,7 +126,7 @@ Disparados desde código con `performSegue(withIdentifier:)`. Necesario porque e
 | `UITextField` | Login, Registro, Formulario Producto, Formulario Cliente |
 | `UIButton` | Bienvenida, Login, Registro |
 | `UITableView` | Lista Productos, Lista Clientes |
-| `UISegmentedControl` | Lista Productos (filtro Todo / Activos / Stock bajo) |
+| `UISegmentedControl` | Lista Productos (filtro Todo / Con stock / Sin stock) |
 | `UISwitch` | Formulario Producto (estado activo/inactivo), Formulario Cliente (estado) |
 | `UIImageView` | Bienvenida (logo), Login (logo), Registro (logo), Detalle Producto (foto), Formulario Producto (foto) |
 | `UIAlertController` | Todos los VCs vía extensión `UIViewController.showAlert(...)` |
@@ -101,18 +137,18 @@ Disparados desde código con `performSegue(withIdentifier:)`. Necesario porque e
 
 ---
 
-## 4. Componentes SwiftUI por pantalla
+## 5. Componentes SwiftUI por pantalla
 
 | Componente | Pantalla(s) |
 |---|---|
 | `Text` | Todas las vistas SwiftUI |
-| `TextField` | Registro Venta (búsqueda de producto) |
+| `TextField` | Búsquedas, Registro Venta |
 | `Button` | Todas las vistas SwiftUI |
-| `List` | Inicio (stock bajo), Búsquedas (resultados) |
+| `List` | Inicio (stock bajo), Búsquedas (resultados), Lista Ventas |
 | `Form` | Configuración (PerfilView), Acerca De, Cambiar Contraseña |
 | `Toggle` | Configuración (modo oscuro) |
-| `Picker` | Registro Venta (selector de cliente) |
-| `DatePicker` | Lista Ventas (filtro por rango de fechas) |
+| `Picker` | Búsquedas, Registro Venta |
+| `DatePicker` | Búsquedas, Lista Ventas |
 | `Map` | Búsquedas (mapa de clientes) |
 | `.sheet` | Lista Ventas (filtro), Registro Venta (confirmación), Configuración (cambiar contraseña), Búsquedas (detalle) |
 | `NavigationStack` | Cambiar Contraseña sheet, Registro Venta sheet, Búsquedas sheets |
@@ -121,44 +157,38 @@ Disparados desde código con `performSegue(withIdentifier:)`. Necesario porque e
 
 ---
 
-## 5. Arquitectura MVC y MVVM
+## 6. Arquitectura MVC y MVVM
 
-### MVC — pantallas UIKit
+### MVC — pantallas UIKit simples
 
-El ViewController es el Controller: recibe eventos de la UI, llama directamente al Service, y actualiza la vista.
+Las pantallas de lista/detalle simples (`ListaProductos`, `ListaClientes`, `DetalleProducto`, `DetalleCliente`) usan MVC: el ViewController recibe eventos de la UI, llama al Service y actualiza la vista.
 
 ```
-UIButton (tap) → LoginViewController.handleLogin()
-    → AuthService.shared.login(email:password:)   ← Model (Service + CoreData)
-    → SceneDelegate.switchToMenu()                ← actualiza Vista (root VC)
+UIButton (tap) → ListaProductosViewController.handleRefresh()
+    → ProductoService.shared.fetchAll()   ← consulta CoreData
+    → tableView.reloadData()
 ```
 
-Otro ejemplo — paso de datos entre VCs:
+Paso de datos entre VCs mediante `prepare(for:sender:)`:
 ```swift
 // ListaClientesViewController.swift
 override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
     if let dest = segue.destination as? DetalleClienteViewController,
        let cliente = sender as? Cliente {
-        dest.cliente = cliente   // el VC destino recibe el modelo directamente
+        dest.cliente = cliente   // el VC destino recibe el NSManagedObject directamente
     }
 }
 ```
 
-Los VCs NO tienen ViewModel: consultan el Service y renderizan. Ejemplo en Lista Productos:
-```swift
-productos = ProductoService.shared.fetchAll()  // llama al modelo
-tableView.reloadData()                          // actualiza la vista
-```
-
 ### MVVM — pantallas SwiftUI
 
-El ViewModel expone `@Published` properties; la vista se suscribe automáticamente con `@StateObject`.
+El ViewModel expone `@Published` properties; la vista se suscribe automáticamente con `@ObservedObject`. Las llamadas al Service se ejecutan dentro de `Task` en el ViewModel, marcado `@MainActor`.
 
 ```
-RegistroVentaView (@StateObject viewModel)
+RegistroVentaView (@ObservedObject viewModel)
     → viewModel.selectedCliente = c          // mutación
-    → viewModel.$cart (Publisher)            // SwiftUI re-renderiza
-    → VentaService.shared.register(...)      // Model
+    → viewModel.$cartItems (Publisher)       // SwiftUI re-renderiza
+    → VentaService.shared.register(...)      // persiste en CoreData
 ```
 
 Ejemplo concreto de `ListaVentasViewModel`:
@@ -166,46 +196,110 @@ Ejemplo concreto de `ListaVentasViewModel`:
 @MainActor
 final class ListaVentasViewModel: ObservableObject {
     @Published var ventas: [Venta] = []
-    @Published var isDateFiltering = false
+    @Published var isLoading = false
 
     func load() {
-        ventas = VentaService.shared.fetchAll()
+        isLoading = true
+        Task {
+            ventas = (try? await VentaService.shared.fetchAll()) ?? []
+            isLoading = false
+        }
     }
 }
 ```
 
-`ListaVentasView` solo lee `viewModel.ventas` y llama `viewModel.load()` — sin lógica de negocio.
+`ListaVentasView` solo lee `viewModel.ventas` y llama `viewModel.load()` en `.onAppear` — sin lógica de negocio.
+
+### MVVM — pantallas UIKit complejas
+
+Las pantallas con formularios y validación (`FormularioProducto`, `FormularioCliente`, `Login`, `Registro`) usan MVVM. El ViewModel expone closures que el VC implementa para actualizar la UI.
+
+```swift
+// RegistroViewController.swift
+private func bindViewModel() {
+    viewModel.onValidationErrors = { [weak self] validation in
+        self?.apply(validation: validation)
+    }
+    viewModel.onLoading = { [weak self] isLoading in
+        self?.registerButton.isEnabled = !isLoading
+        self?.registerButton.alpha = isLoading ? 0.6 : 1
+    }
+    viewModel.onError = { [weak self] message in
+        self?.showAlert(title: "Error al registrarse", message: message)
+    }
+    viewModel.onSuccess = {
+        (UIApplication.shared.connectedScenes.first?.delegate as? SceneDelegate)?.switchToMenu()
+    }
+}
+```
 
 ### ViewModels existentes
 
-| ViewModel | Vista |
+| ViewModel | Vista/VC |
 |---|---|
 | `InicioViewModel` | `InicioView` |
+| `StockBajoViewModel` | `StockBajoView` |
 | `ListaVentasViewModel` | `ListaVentasView` |
 | `RegistroVentaViewModel` | `RegistroVentaView` |
+| `DetalleVentaViewModel` | `DetalleVentaView` |
 | `PerfilViewModel` | `PerfilView` (Configuración) |
 | `ReportesViewModel` | `ReportesView` |
 | `BusquedasViewModel` | `BusquedasView` |
+| `FormularioProductoViewModel` | `FormularioProductoViewController` |
+| `ProductoImageService` | helper de imagen del formulario producto |
+| `FormularioClienteViewModel` | `FormularioClienteViewController` |
+| `ClienteLocationService` | helper de geocoding del formulario cliente |
+| `LoginViewModel` | `LoginViewController` |
+| `RegistroViewModel` | `RegistroViewController` |
 
 ---
 
-## 6. Flujo de la aplicación
+## 7. Cómo leer el código
+
+### Si vas a tocar una pantalla SwiftUI
+1. Abre `SwiftUI/<Feature>/`.
+2. Lee primero el `*ViewModel.swift`: ahí está el estado y la lógica.
+3. Luego lee el `*View.swift`: es puro layout declarativo.
+4. Si la pantalla se muestra desde UIKit, busca su `UIHostingController` en `SwiftUI/Hosting/HostingControllers.swift`.
+
+### Si vas a tocar una pantalla UIKit
+1. Abre `UIKit/<Feature>/`.
+2. Si la pantalla es un formulario/auth, lee primero el `*ViewModel.swift`.
+3. Luego lee el `*ViewController.swift`: solo configura outlets, actions y bindings.
+4. El diseño visual está en `Main.storyboard`.
+
+### Si vas a tocar persistencia o reglas de negocio
+1. Ve a `CoreData/` para ver los `NSManagedObject` y el `PersistenceController`.
+2. Ve a `Services/` para ver la lógica de cada dominio.
+3. Los Services actúan como repositorios: la UI nunca toca Core Data directamente.
+
+### Convenciones de nombres
+- Vistas SwiftUI: `<Nombre>View`
+- ViewModels: `<Nombre>ViewModel`
+- ViewControllers UIKit: `<Nombre>ViewController`
+- Services: `<Dominio>Service`
+- Entidades CoreData: nombre en PascalCase sin prefijo (`Producto`, `Cliente`, `Venta`, etc.)
+
+---
+
+## 8. Flujo de la aplicación
 
 ```
 Lanzamiento
     └─ SceneDelegate.scene(_:willConnectTo:)
-          ├─ SeederService.seedIfNeeded()      ← datos iniciales (solo 1ra vez)
           ├─ AppStyle.configureGlobalAppearance()
-          └─ AuthService.hasActiveSession?
-                ├─ YES → MenuViewController (UITabBarController)
-                └─ NO  → UINavigationController → BienvenidaViewController
+          ├─ AuthService.hasActiveSession?   (UserDefaults "activeUserID")
+          │       ├─ YES → MenuViewController (UITabBarController)
+          │       └─ NO  → UINavigationController → BienvenidaViewController
+          └─ SeederService.seedIfNeeded()
+                   └─ solo en primer lanzamiento (flag en UserDefaults)
 
 Auth
     BienvenidaVC ──(segue)──► LoginVC ──(segue)──► RegistroVC
-                                │
-                        handleLogin() → AuthService.login()
-                                │
-                        SceneDelegate.switchToMenu()  ←─ cross-dissolve
+                                 │
+                         viewModel.login() / viewModel.register()
+                                 │
+                         SceneDelegate.switchToMenu()  ←─ cross-dissolve
 
 Menu (5 tabs)
     Inicio      → Reportes / Búsquedas / Stock Bajo / Nueva Venta (segues con id)
@@ -216,15 +310,15 @@ Menu (5 tabs)
 
 Logout
     PerfilView → NotificationCenter.post(.userDidLogout)
-    SceneDelegate.handleLogout() → switchToAuth()
+    SceneDelegate.handleLogout() → AuthService.logout() → switchToAuth()
 ```
 
 ---
 
-## 7. UserDefaults y Core Data
+## 9. Persistencia: UserDefaults y Core Data
 
 ### UserDefaults
-Se usa para **dos propósitos únicamente**:
+Se usa para **preferencias y estado de sesión únicamente**:
 
 | Key | Tipo | Uso |
 |---|---|---|
@@ -235,7 +329,8 @@ Se usa para **dos propósitos únicamente**:
 UserDefaults **no almacena datos de negocio** — solo preferencias y estado de sesión liviano.
 
 ### Core Data
-Cinco entidades persistentes con `NSManagedObject` escritos a mano (sin generación automática de Xcode):
+
+Modelo: `tecstore_tecsup.xcdatamodeld`. Cinco entidades persistentes con `NSManagedObject` escritos a mano (sin generación automática de Xcode):
 
 | Entidad | Atributos clave | Relaciones |
 |---|---|---|
@@ -251,4 +346,38 @@ Cinco entidades persistentes con `NSManagedObject` escritos a mano (sin generaci
 - `backgroundContext` — para escritura sin bloquear la UI
 - Métodos utilitarios: `fetch<T>()`, `count<T>()`, `delete(_:)`
 
-**Justificación de la separación Services/CoreData:** los `NSManagedObject` no se exponen directamente a la UI. Los `Services` (AuthService, ProductoService, etc.) actúan como repositorios: reciben/devuelven los managed objects pero encapsulan los `NSPredicate`, el `NSFetchRequest` y el `context.save()`. La UI nunca toca Core Data directamente.
+### Autenticación
+
+No hay Firebase Auth. La autenticación es local:
+- El registro hashea la contraseña con SHA-256 + salt via `PasswordHasher` (`Core/PasswordHasher.swift`).
+- El login busca el `Usuario` por email y compara el hash.
+- La sesión activa se persiste en `UserDefaults["activeUserID"]`.
+
+### Capa de Services (`Services/`)
+
+Cada dominio tiene su propio Service que usa `PersistenceController` internamente. Los VCs y ViewModels los llaman sin preocuparse por Core Data directamente.
+
+| Service | Responsabilidad |
+|---|---|
+| `AuthService` | Registro, login, logout, sesión activa, cambio de contraseña |
+| `ProductoService` | CRUD de productos, generación de código, filtros por categoría/stock |
+| `ClienteService` | CRUD de clientes, búsqueda por DNI, filtro por estado |
+| `VentaService` | Registro de ventas, cálculo de totales (subtotal + 18% IGV), consulta por rango de fechas |
+| `ReporteService` | Métricas agregadas: totales, ingresos por categoría, productos top, tendencia diaria |
+| `UbicacionService` | Guardar y leer coordenadas GPS del cliente |
+| `SeederService` | Datos de prueba en primer lanzamiento |
+| `ProductoImageService` | Captura/redimensiona/guarda la foto de un producto en el directorio Documents |
+| `ClienteLocationService` | Geocoding/reverse-geocoding con MapKit (`MKGeocodingRequest` / `MKReverseGeocodingRequest`) |
+
+---
+
+## Historial de cambios recientes
+
+- **MVVM completo en SwiftUI**: cada pantalla SwiftUI tiene su ViewModel inyectado desde `UIHostingController`.
+- **MVVM en formularios UIKit**: `FormularioProducto`, `FormularioCliente`, `Login` y `Registro` usan ViewModels con closures.
+- **Nuevas pantallas SwiftUI**: `StockBajoView`, `AcercaDeView`, `DetalleVentaView` y sus ViewModels.
+- **Nuevos services de soporte**: `ProductoImageService` (camera/gallery + Documents) y `ClienteLocationService` (MapKit geocoding).
+- **Auto Layout puro en storyboard**: los constraints de UIKit se movieron de código a `Main.storyboard`.
+- **Navegación por segues**: unificación de transiciones con `performSegue` y segues manuales.
+- **Geocoding moderno**: reemplazo de `CLGeocoder` deprecado por `MKGeocodingRequest` / `MKReverseGeocodingRequest`.
+- **Colores semánticos**: celdas y tarjetas usan `secondarySystemBackground` para contrastar con el fondo en claro y oscuro.

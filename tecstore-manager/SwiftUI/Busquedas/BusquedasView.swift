@@ -1,123 +1,5 @@
 import SwiftUI
-import Combine
 import MapKit
-
-// DetalleVentaView lives in SwiftUI/Ventas/DetalleVentaView.swift
-
-// ════════════════════════════════════════════════════════════
-// MARK: - BusquedasViewModel
-// ════════════════════════════════════════════════════════════
-
-@MainActor
-final class BusquedasViewModel: ObservableObject {
-
-    enum Segment: Int, CaseIterable {
-        case productos = 0, clientes = 1, ventas = 2
-        var title: String {
-            switch self { case .productos: "Productos"; case .clientes: "Clientes"; case .ventas: "Ventas" }
-        }
-    }
-
-    enum ProductoFilter: Int, CaseIterable {
-        case todos, conStock, sinStock
-        var title: String {
-            switch self { case .todos: "Todos"; case .conStock: "Con stock"; case .sinStock: "Sin stock" }
-        }
-    }
-
-    enum ClienteFilter: Int, CaseIterable {
-        case todos, activos, inactivos
-        var title: String {
-            switch self { case .todos: "Todos"; case .activos: "Activos"; case .inactivos: "Inactivos" }
-        }
-    }
-
-    @Published var searchText:       String         = ""
-    @Published var selectedSegment:  Segment        = .productos
-    @Published var productoFilter:   ProductoFilter = .todos
-    @Published var categoriaFilter:  String         = "Todos"
-    @Published var clienteFilter:    ClienteFilter  = .todos
-    @Published var productos:        [Producto]     = []
-    @Published var clientes:         [Cliente]      = []
-    @Published var ventas:           [Venta]        = []
-
-    // Venta date + amount filter
-    @Published var ventaStartDate:  Date   = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
-    @Published var ventaEndDate:    Date   = Date()
-    @Published var ventaMinAmount:  String = ""
-
-    // Detail sheets
-    @Published var selectedProducto: Producto? = nil
-    @Published var selectedCliente:  Cliente?  = nil
-    @Published var selectedVenta:    Venta?    = nil
-
-    func search() {
-        let text = searchText.trimmed
-        switch selectedSegment {
-        case .productos:
-            var result = text.isEmpty
-                ? ProductoService.shared.fetchAll()
-                : ProductoService.shared.search(text: text)
-            switch productoFilter {
-            case .conStock:  result = result.filter { $0.hasStock }
-            case .sinStock:  result = result.filter { !$0.hasStock }
-            case .todos:     break
-            }
-            if categoriaFilter != "Todos" {
-                result = result.filter { $0.categoryValue == categoriaFilter }
-            }
-            productos = result
-
-        case .clientes:
-            var result = text.isEmpty
-                ? ClienteService.shared.fetchAll()
-                : ClienteService.shared.search(text: text)
-            switch clienteFilter {
-            case .activos:   result = result.filter { $0.isActive }
-            case .inactivos: result = result.filter { !$0.isActive }
-            case .todos:     break
-            }
-            clientes = result
-
-        case .ventas:
-            var result = text.isEmpty
-                ? VentaService.shared.fetch(from: ventaStartDate, to: ventaEndDate)
-                : VentaService.shared.search(text: text)
-            if let min = Double(ventaMinAmount), min > 0 {
-                result = result.filter { ($0.total?.doubleValue ?? 0) >= min }
-            }
-            ventas = result
-        }
-    }
-
-    var hasActiveFilters: Bool {
-        switch selectedSegment {
-        case .productos:
-            return productoFilter != .todos || categoriaFilter != "Todos"
-        case .clientes:
-            return clienteFilter != .todos
-        case .ventas:
-            return ventaMinAmount.isNotBlank
-        }
-    }
-
-    func resetFilters() {
-        productoFilter  = .todos
-        categoriaFilter = "Todos"
-        clienteFilter   = .todos
-        ventaMinAmount  = ""
-        ventaStartDate  = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
-        ventaEndDate    = Date()
-    }
-
-    func applyVentaDateFilter() {
-        var result = VentaService.shared.fetch(from: ventaStartDate, to: ventaEndDate)
-        if let min = Double(ventaMinAmount), min > 0 {
-            result = result.filter { ($0.total?.doubleValue ?? 0) >= min }
-        }
-        ventas = result
-    }
-}
 
 // ════════════════════════════════════════════════════════════
 // MARK: - BusquedasView
@@ -125,7 +7,7 @@ final class BusquedasViewModel: ObservableObject {
 
 struct BusquedasView: View {
 
-    @StateObject private var viewModel = BusquedasViewModel()
+    @ObservedObject var viewModel: BusquedasViewModel
     @State private var showFilterSheet = false
 
     var body: some View {
@@ -198,7 +80,7 @@ struct BusquedasView: View {
             BusquedaClienteSheet(cliente: c)
         }
         .sheet(item: $viewModel.selectedVenta) { v in
-            NavigationStack { DetalleVentaView(venta: v) }
+            NavigationStack { DetalleVentaView(viewModel: DetalleVentaViewModel(venta: v)) }
         }
         .navigationTitle("Búsquedas")
         .onAppear { viewModel.search() }
@@ -276,7 +158,7 @@ struct BusquedasView: View {
 // ── Row views ──
 
 struct ProductoBusquedaRow: View {
-    let producto: Producto
+    let producto: FBProducto
     var body: some View {
         HStack(spacing: 12) {
             Group {
@@ -306,14 +188,15 @@ struct ProductoBusquedaRow: View {
             }
         }
         .padding(10)
-        .background(Color(UIColor.systemBackground))
+        .background(Color(UIColor.appSurface))
         .cornerRadius(10)
+        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
         .opacity(producto.isActive ? 1 : 0.6)
     }
 }
 
 struct ClienteBusquedaRow: View {
-    let cliente: Cliente
+    let cliente: FBCliente
     var body: some View {
         HStack(spacing: 12) {
             Circle()
@@ -336,8 +219,9 @@ struct ClienteBusquedaRow: View {
                 .cornerRadius(4)
         }
         .padding(10)
-        .background(Color(UIColor.systemBackground))
+        .background(Color(UIColor.appSurface))
         .cornerRadius(10)
+        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
         .opacity(cliente.isActive ? 1 : 0.7)
     }
 }
@@ -425,7 +309,7 @@ struct BusquedasFilterSheet: View {
 // ── Detail sheets ──
 
 struct BusquedaProductoSheet: View {
-    let producto: Producto
+    let producto: FBProducto
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
@@ -452,7 +336,7 @@ struct BusquedaProductoSheet: View {
 }
 
 struct BusquedaClienteSheet: View {
-    let cliente: Cliente
+    let cliente: FBCliente
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {

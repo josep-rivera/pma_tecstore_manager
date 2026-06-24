@@ -4,7 +4,7 @@ import MapKit
 final class DetalleClienteViewController: UIViewController {
 
     // MARK: - Data
-    var cliente: Cliente!
+    var cliente: FBCliente?
 
     // MARK: - IBOutlets (storyboard-placed, styled in code)
     @IBOutlet weak var nameLabel: UILabel!
@@ -22,14 +22,12 @@ final class DetalleClienteViewController: UIViewController {
     @IBOutlet weak var contactDiv4: UIView!
     @IBOutlet weak var noLocationLabel: UILabel!
 
-    // MARK: - UI (programmatic — dynamic, not IBOutlets)
-    // Header
-    private let avatarView   = UIView()
-    private let avatarLetter = UILabel()
+    // MARK: - UI
+    @IBOutlet weak var avatarView: UIView!
+    @IBOutlet weak var avatarLetter: UILabel!
 
-    // Contact card
-    private let contactCard = UIView()
-    private let fechaLabel  = UILabel()
+    @IBOutlet weak var contactCard: UIView!
+    @IBOutlet weak var fechaLabel: UILabel!
 
     // MARK: - Lifecycle
 
@@ -37,13 +35,13 @@ final class DetalleClienteViewController: UIViewController {
         super.viewDidLoad()
         setupView()
         setupIBOutletStyling()
-        setupProgrammaticViews()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        if let updated = ClienteService.shared.fetch(byID: cliente.id) { cliente = updated }
         populate()
+        guard let cliente else { return }
+        Task { if let updated = try? await ClienteService.shared.fetch(byID: cliente.id ?? "") { await MainActor.run { self.cliente = updated; self.populate() } } }
     }
 
     // MARK: - Setup
@@ -55,168 +53,62 @@ final class DetalleClienteViewController: UIViewController {
     }
 
     /// Apply styling to IBOutlet views without adding or constraining them (storyboard owns layout).
+    /// Every access uses optional chaining so a nil outlet (e.g. after a rotation-induced
+    /// view lifecycle transition) cannot crash the app.
     private func setupIBOutletStyling() {
-        nameLabel.font          = AppFont.title2()
-        nameLabel.textColor     = .appTextPrimary
-        nameLabel.textAlignment = .center
-        nameLabel.numberOfLines = 0
+        nameLabel?.font          = AppFont.title2()
+        nameLabel?.textColor     = .appTextPrimary
+        nameLabel?.textAlignment = .center
+        nameLabel?.numberOfLines = 0
 
-        statusBadge.font               = AppFont.caption1()
-        statusBadge.textColor          = .white
-        statusBadge.textAlignment      = .center
-        statusBadge.layer.cornerRadius = 12
-        statusBadge.clipsToBounds      = true
-        statusBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 72).isActive = true
-        statusBadge.heightAnchor.constraint(equalToConstant: 24).isActive = true
+        statusBadge?.font               = AppFont.caption1()
+        statusBadge?.textColor          = .white
+        statusBadge?.textAlignment      = .center
+        statusBadge?.layer.cornerRadius = 12
+        statusBadge?.clipsToBounds      = true
 
-        for lbl in ([dniLabel, telefonoLabel, correoLabel, direccionLabel] as [UILabel]) {
-            lbl.font          = AppFont.body()
-            lbl.textColor     = .appTextSecondary
-            lbl.numberOfLines = 0
+        avatarView?.backgroundColor    = .brandLight
+        avatarView?.layer.cornerRadius = 48
+
+        avatarLetter?.font          = AppFont.title1()
+        avatarLetter?.textColor     = .brandPrimary
+        avatarLetter?.textAlignment = .center
+
+        contactCard?.backgroundColor    = .appSurface
+        contactCard?.layer.cornerRadius = AppLayout.cornerRadius
+        contactCard?.layer.cornerCurve  = .continuous
+
+        fechaLabel?.font      = AppFont.footnote()
+        fechaLabel?.textColor = .appTextTertiary
+
+        for div in ([contactDiv1, contactDiv2, contactDiv3, contactDiv4] as [UIView?]) {
+            div?.backgroundColor = .appSeparator
         }
 
-        mapView.layer.cornerRadius       = AppLayout.cornerRadius
-        mapView.layer.cornerCurve        = .continuous
-        mapView.clipsToBounds            = true
-        mapView.isUserInteractionEnabled = false
-    }
-
-    /// Add programmatic supplementary views to the storyboard's contentView.
-    /// `nameLabel.superview` is the storyboard-provided contentView inside the scrollView.
-    private func setupProgrammaticViews() {
-        guard let contentView = nameLabel.superview else { return }
-        let ph = AppLayout.paddingLarge
-        let p  = AppLayout.padding
-
-        // Avatar (96pt) — programmatic, positioned above nameLabel
-        let avatarSize: CGFloat = 96
-        avatarView.translatesAutoresizingMaskIntoConstraints = false
-        avatarView.layer.cornerRadius = avatarSize / 2
-        avatarView.backgroundColor    = .brandLight
-        avatarView.constrainSize(width: avatarSize, height: avatarSize)
-
-        avatarLetter.translatesAutoresizingMaskIntoConstraints = false
-        avatarLetter.font          = AppFont.title1()
-        avatarLetter.textColor     = .brandPrimary
-        avatarLetter.textAlignment = .center
-        avatarView.addSubview(avatarLetter)
-        avatarLetter.pinEdges(to: avatarView)
-
-        contentView.addSubview(avatarView)
-        contentView.insertSubview(avatarView, belowSubview: nameLabel)
-
-        // Contact card (programmatic), wrapping the IBOutlet contact labels
-        contactCard.translatesAutoresizingMaskIntoConstraints = false
-        contactCard.backgroundColor    = .appSurface
-        contactCard.layer.cornerRadius = AppLayout.cornerRadius
-        contactCard.layer.cornerCurve  = .continuous
-
-        fechaLabel.translatesAutoresizingMaskIntoConstraints = false
-        fechaLabel.font      = AppFont.footnote()
-        fechaLabel.textColor = .appTextTertiary
-
-        // contactDiv1-4 come from storyboard; apply separator color
-        for div in ([contactDiv1, contactDiv2, contactDiv3, contactDiv4] as [UIView]) {
-            div.translatesAutoresizingMaskIntoConstraints = false
-            div.backgroundColor = .appSeparator
+        for lbl in ([dniLabel, telefonoLabel, correoLabel, direccionLabel] as [UILabel?]) {
+            lbl?.font          = AppFont.body()
+            lbl?.textColor     = .appTextSecondary
+            lbl?.numberOfLines = 0
         }
 
-        // Reparent IBOutlet labels into contactCard
-        for lbl in ([dniLabel, telefonoLabel, correoLabel, direccionLabel] as [UILabel]) {
-            lbl.translatesAutoresizingMaskIntoConstraints = false
-            contactCard.addSubview(lbl)
-        }
+        noLocationLabel?.font      = AppFont.footnote()
+        noLocationLabel?.textColor = .appTextTertiary
 
-        contactCard.addSubviews(
-            contactDiv1,
-            contactDiv2,
-            contactDiv3,
-            contactDiv4,
-            fechaLabel
-        )
-        contentView.addSubview(contactCard)
-
-        // noLocationLabel comes from storyboard; apply styling and reparent above mapView
-        noLocationLabel.translatesAutoresizingMaskIntoConstraints = false
-        noLocationLabel.font          = AppFont.footnote()
-        noLocationLabel.textColor     = .appTextTertiary
-        contentView.addSubview(noLocationLabel)
-
-        NSLayoutConstraint.activate([
-            // Avatar above nameLabel (nameLabel is at top+120 per storyboard; we insert avatar above it)
-            avatarView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: ph),
-            avatarView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-
-            // Contact card below statusBadge (IBOutlet)
-            contactCard.topAnchor.constraint(equalTo: statusBadge.bottomAnchor, constant: ph),
-            contactCard.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
-            contactCard.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
-
-            // DNI row (IBOutlet)
-            dniLabel.topAnchor.constraint(equalTo: contactCard.topAnchor, constant: p),
-            dniLabel.leadingAnchor.constraint(equalTo: contactCard.leadingAnchor, constant: p),
-            dniLabel.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor, constant: -p),
-
-            contactDiv1.topAnchor.constraint(equalTo: dniLabel.bottomAnchor, constant: p),
-            contactDiv1.leadingAnchor.constraint(equalTo: contactCard.leadingAnchor),
-            contactDiv1.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor),
-            contactDiv1.heightAnchor.constraint(equalToConstant: 1),
-
-            // Teléfono row (IBOutlet)
-            telefonoLabel.topAnchor.constraint(equalTo: contactDiv1.bottomAnchor, constant: p),
-            telefonoLabel.leadingAnchor.constraint(equalTo: contactCard.leadingAnchor, constant: p),
-            telefonoLabel.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor, constant: -p),
-
-            contactDiv2.topAnchor.constraint(equalTo: telefonoLabel.bottomAnchor, constant: p),
-            contactDiv2.leadingAnchor.constraint(equalTo: contactCard.leadingAnchor),
-            contactDiv2.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor),
-            contactDiv2.heightAnchor.constraint(equalToConstant: 1),
-
-            // Correo row (IBOutlet)
-            correoLabel.topAnchor.constraint(equalTo: contactDiv2.bottomAnchor, constant: p),
-            correoLabel.leadingAnchor.constraint(equalTo: contactCard.leadingAnchor, constant: p),
-            correoLabel.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor, constant: -p),
-
-            contactDiv3.topAnchor.constraint(equalTo: correoLabel.bottomAnchor, constant: p),
-            contactDiv3.leadingAnchor.constraint(equalTo: contactCard.leadingAnchor),
-            contactDiv3.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor),
-            contactDiv3.heightAnchor.constraint(equalToConstant: 1),
-
-            // Dirección row (IBOutlet)
-            direccionLabel.topAnchor.constraint(equalTo: contactDiv3.bottomAnchor, constant: p),
-            direccionLabel.leadingAnchor.constraint(equalTo: contactCard.leadingAnchor, constant: p),
-            direccionLabel.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor, constant: -p),
-
-            contactDiv4.topAnchor.constraint(equalTo: direccionLabel.bottomAnchor, constant: p),
-            contactDiv4.leadingAnchor.constraint(equalTo: contactCard.leadingAnchor),
-            contactDiv4.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor),
-            contactDiv4.heightAnchor.constraint(equalToConstant: 1),
-
-            // Fecha (programmatic)
-            fechaLabel.topAnchor.constraint(equalTo: contactDiv4.bottomAnchor, constant: p),
-            fechaLabel.leadingAnchor.constraint(equalTo: contactCard.leadingAnchor, constant: p),
-            fechaLabel.trailingAnchor.constraint(equalTo: contactCard.trailingAnchor, constant: -p),
-            fechaLabel.bottomAnchor.constraint(equalTo: contactCard.bottomAnchor, constant: -p),
-
-            // mapView (IBOutlet) — storyboard placed it in contentView; add constraints for card→map
-            mapView.topAnchor.constraint(equalTo: contactCard.bottomAnchor, constant: ph),
-            mapView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ph),
-            mapView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ph),
-            mapView.heightAnchor.constraint(equalToConstant: 200),
-            mapView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -ph),
-
-            noLocationLabel.centerXAnchor.constraint(equalTo: mapView.centerXAnchor),
-            noLocationLabel.centerYAnchor.constraint(equalTo: mapView.centerYAnchor),
-        ])
+        mapView?.layer.cornerRadius       = AppLayout.cornerRadius
+        mapView?.layer.cornerCurve        = .continuous
+        mapView?.clipsToBounds            = true
+        mapView?.isUserInteractionEnabled = false
     }
 
     // MARK: - Populate
 
-    private func iconText(_ label: UILabel, icon: String, text: String) {
-        guard let img = UIImage(systemName: icon)?
+    private func iconText(_ label: UILabel?, icon: String, text: String) {
+        guard let label,
+              let img = UIImage(systemName: icon)?
             .withTintColor(.appTextSecondary, renderingMode: .alwaysOriginal)
             .withConfiguration(UIImage.SymbolConfiguration(pointSize: 15, weight: .regular)) else {
-            label.text = text; return
+            label?.text = text
+            return
         }
         let attach    = NSTextAttachment()
         attach.image  = img
@@ -229,43 +121,70 @@ final class DetalleClienteViewController: UIViewController {
         label.attributedText = full
     }
 
+    private func resetUI() {
+        avatarLetter?.text = "?"
+        nameLabel?.text    = ""
+
+        statusBadge?.text            = ""
+        statusBadge?.backgroundColor = .appTextSecondary
+
+        dniLabel?.text       = ""
+        telefonoLabel?.text  = ""
+        correoLabel?.text    = ""
+        direccionLabel?.text = ""
+        fechaLabel?.text     = ""
+
+        mapView?.isHidden         = true
+        noLocationLabel?.isHidden = true
+        mapView?.removeAnnotations(mapView?.annotations ?? [])
+
+        navigationItem.rightBarButtonItem?.isEnabled = false
+    }
+
     private func populate() {
-        guard let c = cliente else { return }
+        guard let c = cliente else {
+            resetUI()
+            return
+        }
 
-        let initial       = c.firstNames.first.map { String($0) } ?? "?"
-        avatarLetter.text = initial.uppercased()
-        nameLabel.text    = c.fullName
+        mapView?.isHidden = false
+        navigationItem.rightBarButtonItem?.isEnabled = true
 
-        statusBadge.text            = c.statusValue
-        statusBadge.backgroundColor = c.isActive ? .appSuccess : .appTextSecondary
+        let initial        = c.firstNames.first.map { String($0) } ?? "?"
+        avatarLetter?.text = initial.uppercased()
+        nameLabel?.text    = c.fullName
+
+        statusBadge?.text            = c.statusValue
+        statusBadge?.backgroundColor = c.isActive ? .appSuccess : .appTextSecondary
 
         iconText(dniLabel,       icon: "creditcard",    text: "DNI: \(c.dniValue)")
         iconText(telefonoLabel,  icon: "phone",         text: c.phoneNumber  ?? "Sin teléfono")
         iconText(correoLabel,    icon: "envelope",      text: c.emailValue   ?? "Sin correo")
         iconText(direccionLabel, icon: "mappin.circle", text: c.addressValue ?? "Sin dirección")
-        fechaLabel.text = "Registrado el \(c.registrationDate.displayDate)"
+        fechaLabel?.text = "Registrado el \(c.registrationDate.displayDate)"
 
         if c.hasValidCoordinates {
-            noLocationLabel.isHidden = true
+            noLocationLabel?.isHidden = true
             let coord    = CLLocationCoordinate2D(latitude: c.latitude, longitude: c.longitude)
             let pin      = MKPointAnnotation()
             pin.title    = c.fullName
             pin.subtitle = c.locationReference
             pin.coordinate = coord
-            mapView.removeAnnotations(mapView.annotations)
-            mapView.addAnnotation(pin)
+            mapView?.removeAnnotations(mapView?.annotations ?? [])
+            mapView?.addAnnotation(pin)
             let region = MKCoordinateRegion(center: coord,
                                             latitudinalMeters: 1500, longitudinalMeters: 1500)
-            mapView.setRegion(region, animated: false)
+            mapView?.setRegion(region, animated: false)
         } else {
-            noLocationLabel.isHidden = false
-            mapView.removeAnnotations(mapView.annotations)
+            noLocationLabel?.isHidden = false
+            mapView?.removeAnnotations(mapView?.annotations ?? [])
         }
     }
 
     // MARK: - Navigation
 
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        guard let cliente else { return }
         if let dest = segue.destination as? FormularioClienteViewController {
             dest.cliente = cliente
             dest.onSave  = { }

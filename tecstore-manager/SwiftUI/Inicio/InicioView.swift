@@ -2,33 +2,12 @@ import SwiftUI
 import Combine
 
 // ─────────────────────────────────────────────
-// MARK: - InicioViewModel
-// ─────────────────────────────────────────────
-
-@MainActor
-final class InicioViewModel: ObservableObject {
-
-    @Published var todaySalesCount:  Int    = 0
-    @Published var todaySalesTotal:  Double = 0
-    @Published var outOfStockCount:  Int    = 0
-    @Published var totalClientes:    Int    = 0
-
-    func loadMetrics() {
-        let today        = ReporteService.shared.todayMetrics()
-        todaySalesCount  = today.count
-        todaySalesTotal  = today.total
-        outOfStockCount  = ReporteService.shared.countOutOfStock()
-        totalClientes    = ReporteService.shared.countClientes()
-    }
-}
-
-// ─────────────────────────────────────────────
 // MARK: - InicioView
 // ─────────────────────────────────────────────
 
 struct InicioView: View {
 
-    @StateObject private var viewModel = InicioViewModel()
+    @ObservedObject var viewModel: InicioViewModel
 
     var onBusquedas:  (() -> Void)? = nil
     var onReportes:   (() -> Void)? = nil
@@ -52,7 +31,7 @@ struct InicioView: View {
                     MetricCard(icon: "exclamationmark.triangle.fill", color: Color.appWarning,
                                value: "\(viewModel.outOfStockCount)", label: "Sin stock")
                     MetricCard(icon: "person.2.fill", color: Color(UIColor.systemIndigo),
-                               value: "\(viewModel.totalClientes)", label: "Clientes")
+                               value: "\(viewModel.totalClients)", label: "Clientes")
                 }
                 .padding(.horizontal, CGFloat(AppLayout.padding))
 
@@ -74,7 +53,7 @@ struct InicioView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Bienvenido")
                     .font(.system(.title2).bold())
-                if let name = AuthService.shared.currentUser?.fullName {
+                if let name = viewModel.userName {
                     Text(name)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
@@ -86,9 +65,9 @@ struct InicioView: View {
                 .foregroundColor(.brandPrimary)
         }
         .padding(CGFloat(AppLayout.paddingLarge))
-        .background(Color(UIColor.systemBackground))
+        .background(Color(UIColor.appSurface))
         .cornerRadius(CGFloat(AppLayout.cornerRadius))
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
         .padding(.horizontal, CGFloat(AppLayout.padding))
     }
 
@@ -126,85 +105,11 @@ struct InicioView: View {
 
             Button { onStockBajo?() } label: {
                 ShortcutCard(icon: "exclamationmark.triangle.fill", title: "Stock bajo",
-                             subtitle: "Productos con 5 unidades o menos",
+                             subtitle: "Productos con \(AppConstants.lowStockThreshold) unidades o menos",
                              color: Color.appWarning)
             }
             .buttonStyle(.plain)
             .padding(.horizontal, CGFloat(AppLayout.padding))
-        }
-    }
-}
-
-// ─────────────────────────────────────────────
-// MARK: - StockBajoView
-// ─────────────────────────────────────────────
-
-struct StockBajoView: View {
-
-    @State private var productos: [Producto] = []
-
-    var body: some View {
-        Group {
-            if productos.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 44))
-                        .foregroundColor(.appSuccess)
-                    Text("Todos los productos tienen stock suficiente")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                List(productos) { p in
-                    HStack(spacing: 12) {
-                        Group {
-                            if let path = p.productImagePath,
-                               let uiImg = UIImage(named: path) ?? UIImage.fromDocuments(named: path) {
-                                Image(uiImage: uiImg)
-                                    .resizable()
-                                    .scaledToFill()
-                            } else {
-                                Image(systemName: p.categoryEnum.icon)
-                                    .font(.system(.title3))
-                                    .foregroundColor(Color(UIColor.colorForCategory(p.categoryValue)))
-                            }
-                        }
-                        .frame(width: 36, height: 36)
-                        .background(Color(UIColor.colorForCategory(p.categoryValue)).opacity(0.12))
-                        .cornerRadius(8)
-                        .clipped()
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(p.productName).font(.subheadline.weight(.medium))
-                            Text(p.productCode).font(.caption).foregroundColor(.secondary)
-                        }
-
-                        Spacer()
-
-                        VStack(alignment: .trailing, spacing: 3) {
-                            Text("\(p.stockInt) ud.")
-                                .font(.subheadline.bold())
-                                .foregroundColor(Color(p.stockInt.stockUIColor))
-                            Text(p.stockInt.stockLabel)
-                                .font(.caption2)
-                                .foregroundColor(Color(p.stockInt.stockUIColor))
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-                .listStyle(.plain)
-            }
-        }
-        .navigationTitle("Stock bajo")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .onAppear {
-            productos = ProductoService.shared.fetchAll()
-                .filter { $0.isActive && $0.stockInt <= 5 }
-                .sorted { $0.stockInt < $1.stockInt }
         }
     }
 }
@@ -237,9 +142,9 @@ struct MetricCard: View {
                 .foregroundColor(.secondary)
         }
         .padding(CGFloat(AppLayout.padding))
-        .background(Color(UIColor.systemBackground))
+        .background(Color(UIColor.appSurface))
         .cornerRadius(CGFloat(AppLayout.cornerRadius))
-        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 2)
     }
 }
 
@@ -273,8 +178,8 @@ struct ShortcutCard: View {
                 .foregroundColor(Color(UIColor.appTextTertiary))
         }
         .padding(CGFloat(AppLayout.padding))
-        .background(Color(UIColor.systemBackground))
+        .background(Color(UIColor.appSurface))
         .cornerRadius(CGFloat(AppLayout.cornerRadius))
-        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 2)
     }
 }

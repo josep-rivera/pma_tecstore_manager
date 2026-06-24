@@ -140,6 +140,20 @@ enum AppLayout {
 }
 
 // ─────────────────────────────────────────────
+// MARK: - Business Constants
+// ─────────────────────────────────────────────
+
+// Explicitly nonisolated so these pure value constants can be referenced from
+// any concurrency context (e.g. default-parameter values in non-MainActor services).
+nonisolated enum AppConstants {
+    static let lowStockThreshold:       Int = 5
+    static let profileImageMaxDimension: CGFloat = 600
+    static let passwordMinLength:        Int = 6
+    static let topProductosLimit:        Int = 3
+    static let salesTrendWindowDays:     Int = 14
+}
+
+// ─────────────────────────────────────────────
 // MARK: - AppStyle — UIKit Styling Helpers
 // ─────────────────────────────────────────────
 

@@ -3,8 +3,8 @@ import UIKit
 final class ListaClientesViewController: UIViewController {
 
     // MARK: - Data
-    private var allClientes:      [Cliente] = []
-    private var filteredClientes: [Cliente] = []
+    private var allClientes:      [FBCliente] = []
+    private var filteredClientes: [FBCliente] = []
     private var activeFilter: Int = 0   // 0=Todos 1=Activos 2=Inactivos
 
     // MARK: - IBOutlets
@@ -13,7 +13,7 @@ final class ListaClientesViewController: UIViewController {
 
     // MARK: - UI
     private let searchController = UISearchController(searchResultsController: nil)
-    private var filterButton: UIBarButtonItem!
+    private var filterButton:    UIBarButtonItem!
 
     // MARK: - Lifecycle
 
@@ -60,6 +60,7 @@ final class ListaClientesViewController: UIViewController {
         tableView.delegate           = self
         tableView.rowHeight          = UITableView.automaticDimension
         tableView.estimatedRowHeight = AppLayout.cellHeight
+        tableView.backgroundColor    = .appBackground
         tableView.separatorInset     = UIEdgeInsets(top: 0, left: AppLayout.padding, bottom: 0, right: 0)
     }
 
@@ -77,13 +78,17 @@ final class ListaClientesViewController: UIViewController {
     // MARK: - Data
 
     private func loadData() {
-        allClientes = ClienteService.shared.fetchAll()
-        applyFilters()
+        Task {
+            let clientes = (try? await ClienteService.shared.fetchAll()) ?? []
+            await MainActor.run { self.allClientes = clientes; self.applyFilters() }
+        }
     }
 
     private func applyFilters() {
         let text = searchController.searchBar.text?.trimmed ?? ""
-        var result = text.isEmpty ? allClientes : ClienteService.shared.search(text: text)
+        var result = text.isEmpty ? allClientes : allClientes.filter {
+            $0.fullName.localizedCaseInsensitiveContains(text) || $0.dniValue.contains(text)
+        }
         switch activeFilter {
         case 1: result = result.filter {  $0.isActive }
         case 2: result = result.filter { !$0.isActive }
@@ -159,13 +164,12 @@ extension ListaClientesViewController: UITableViewDelegate {
         return UISwipeActionsConfiguration(actions: [delete])
     }
 
-    private func confirmDelete(cliente: Cliente) {
+    private func confirmDelete(cliente: FBCliente) {
         showDestructiveConfirmation(
             title:   "Eliminar cliente",
             message: "¿Eliminar a \"\(cliente.fullName)\"? Esta acción no se puede deshacer."
         ) { [weak self] in
-            ClienteService.shared.delete(cliente)
-            self?.loadData()
+            Task { try? await ClienteService.shared.delete(cliente); await MainActor.run { self?.loadData() } }
         }
     }
 }
@@ -189,7 +193,8 @@ final class ClienteCell: UITableViewCell {
     required init?(coder: NSCoder) { super.init(coder: coder); buildUI() }
 
     private func buildUI() {
-        backgroundColor = .appBackground
+        backgroundColor = .appSurface
+        contentView.backgroundColor = .appSurface
 
         avatarView.translatesAutoresizingMaskIntoConstraints = false
         avatarView.backgroundColor    = .brandLight
@@ -248,7 +253,7 @@ final class ClienteCell: UITableViewCell {
         ])
     }
 
-    func configure(with cliente: Cliente) {
+    func configure(with cliente: FBCliente) {
         let initial        = cliente.firstNames.first.map { String($0) } ?? "?"
         avatarLetter.text  = initial.uppercased()
         nameLabel.text     = cliente.fullName
